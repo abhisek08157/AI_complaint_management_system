@@ -12,6 +12,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/complaints")
+@CrossOrigin("*")
 public class ComplaintController {
 
     private final Complaintservice complaintService;
