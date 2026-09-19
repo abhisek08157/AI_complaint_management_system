@@ -10,15 +10,28 @@ function Register() {
     email: "",
     password: "",
     role: "STUDENT",
+    specialization: "",
   });
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    // Prevent typing multiple comma-separated values for specialization
+    if (name === "specialization") {
+      const singleValue = value.split(",")[0];
+      setForm({
+        ...form,
+        [name]: singleValue,
+      });
+      return;
+    }
+
     setForm({
       ...form,
-      [e.target.name]: e.target.value,
+      [name]: value,
     });
   };
 
@@ -28,8 +41,16 @@ function Register() {
     setError("");
     setLoading(true);
 
+    // Prepare payload (omit specialization if role is STUDENT)
+    const payload = { ...form };
+    if (payload.role !== "STAFF") {
+      delete payload.specialization;
+    } else {
+      payload.specialization = payload.specialization.trim();
+    }
+
     try {
-      await API.post("/auth/register", form);
+      await API.post("/auth/register", payload);
       navigate("/login");
     } catch (error) {
       setError(
@@ -136,6 +157,14 @@ function Register() {
 
         .field input::placeholder {
           color: #B5A899;
+        }
+
+        .field-hint {
+          display: block;
+          font-size: 12px;
+          color: #8C7A6B;
+          margin-top: 6px;
+          font-style: italic;
         }
 
         .form-error {
@@ -361,9 +390,27 @@ function Register() {
               >
                 <option value="STUDENT">Student</option>
                 <option value="STAFF">Staff</option>
-                <option value="ADMIN">Admin</option>
               </select>
             </div>
+
+            {/* Specialization Field - Only shown for STAFF */}
+            {form.role === "STAFF" && (
+              <div className="field">
+                <label htmlFor="specialization">Specialization</label>
+                <input
+                  id="specialization"
+                  type="text"
+                  name="specialization"
+                  placeholder="Electrician, Plumber, AC Mechanic, etc."
+                  value={form.specialization}
+                  onChange={handleChange}
+                  required
+                />
+                <span className="field-hint">
+                  * Select and enter only one primary specialization.
+                </span>
+              </div>
+            )}
 
             {error && <div className="form-error">{error}</div>}
 

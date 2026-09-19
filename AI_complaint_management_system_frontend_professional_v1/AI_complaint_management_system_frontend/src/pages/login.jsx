@@ -54,23 +54,27 @@ function Login() {
   return (
     <div className="login-screen">
       <style>{`
+        * {
+          box-sizing: border-box;
+        }
+
         .login-screen {
           min-height: 100vh;
           display: flex;
-          background-color: #F8F4EB; /* Rich Ghee / Cream background */
+          background-color: #F8F4EB;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
           color: #2C1F1D;
         }
 
         /* Left Hero Panel */
         .login-panel {
-          flex: 1.1;
-          background: #2C1F1D; /* Warm Dark Espresso Brown */
+          flex: 1;
+          background: #2C1F1D;
           color: #F8F4EB;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
-          padding: 64px 72px;
+          padding: 56px 80px;
           position: relative;
           overflow: hidden;
         }
@@ -101,7 +105,7 @@ function Login() {
           gap: 10px;
           font-size: 18px;
           letter-spacing: -0.01em;
-          color: #E2A855; /* Warm Ghee-Gold */
+          color: #E2A855;
           font-weight: 700;
         }
 
@@ -116,13 +120,16 @@ function Login() {
         .panel-headline {
           position: relative;
           z-index: 1;
-          max-width: 460px;
+          max-width: 600px;
+          width: 100%;
+          margin: auto 0;
+          padding: 40px 0;
         }
 
         .panel-headline h1 {
           font-family: Georgia, "Source Serif 4", serif;
           font-size: 48px;
-          line-height: 1.12;
+          line-height: 1.15;
           font-weight: 500;
           margin: 0 0 20px;
           color: #FAF6EE;
@@ -133,8 +140,41 @@ function Login() {
           font-size: 16px;
           line-height: 1.65;
           color: #D3C7B6;
-          margin: 0;
+          margin: 0 0 36px;
           font-weight: 400;
+        }
+
+        /* Speed Highlight Card */
+        .speed-highlight {
+          width: 100%;
+          background: linear-gradient(135deg, rgba(200, 138, 46, 0.14) 0%, rgba(44, 31, 29, 0.5) 100%);
+          border: 1px solid rgba(226, 168, 85, 0.28);
+          border-radius: 12px;
+          padding: 22px 24px;
+          display: flex;
+          align-items: flex-start;
+          gap: 16px;
+          backdrop-filter: blur(8px);
+        }
+
+        .speed-icon {
+          font-size: 22px;
+          line-height: 1;
+          margin-top: 2px;
+        }
+
+        .speed-text h4 {
+          margin: 0 0 6px;
+          font-size: 15.5px;
+          color: #FAF6EE;
+          font-weight: 600;
+        }
+
+        .speed-text p {
+          margin: 0;
+          font-size: 14px;
+          color: #D3C7B6;
+          line-height: 1.5;
         }
 
         .panel-footer {
@@ -159,7 +199,7 @@ function Login() {
 
         .login-form-wrap {
           width: 100%;
-          max-width: 400px;
+          max-width: 420px;
           background: #FFFFFF;
           padding: 40px;
           border-radius: 16px;
@@ -199,7 +239,6 @@ function Login() {
 
         .field input {
           width: 100%;
-          box-sizing: border-box;
           padding: 12px 16px;
           font-size: 15px;
           font-family: inherit;
@@ -237,7 +276,7 @@ function Login() {
         .submit-btn {
           width: 100%;
           padding: 14px;
-          background: #2C1F1D; /* Deep Warm Brown */
+          background: #2C1F1D;
           color: #F8F4EB;
           border: none;
           border-radius: 8px;
@@ -313,8 +352,16 @@ function Login() {
           <h1>Report it once. We'll take it from there.</h1>
           <p>
             Submit a complaint, and CampusCare sorts, prioritizes, and routes
-            it to the right team automatically — so nothing sits in an inbox.
+            it to the right maintenance team automatically — resolving campus issues in record time.
           </p>
+
+          <div className="speed-highlight">
+            <span className="speed-icon">⚡</span>
+            <div className="speed-text">
+              <h4>Lightning-Fast Turnaround</h4>
+              <p>Automated staff allocation ensures standard campus issues are resolved within 24–48 hours.</p>
+            </div>
+          </div>
         </div>
 
         <div className="panel-footer">

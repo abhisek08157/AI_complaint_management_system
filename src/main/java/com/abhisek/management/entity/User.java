@@ -24,6 +24,8 @@ public class User {
     @Column(nullable = false)
     private String role;
 
+    private String specialization;
+
     private LocalDateTime createdAt;
 
     public User() {
@@ -39,6 +41,21 @@ public class User {
         this.email = email;
         this.password = password;
         this.role = role;
+        this.createdAt = LocalDateTime.now();
+    }
+
+    public User(
+            String name,
+            String email,
+            String password,
+            String role,
+            String specialization) {
+
+        this.name = name;
+        this.email = email;
+        this.password = password;
+        this.role = role;
+        this.specialization = specialization;
         this.createdAt = LocalDateTime.now();
     }
 
@@ -88,6 +105,14 @@ public class User {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public String getSpecialization() {
+        return specialization;
+    }
+
+    public void setSpecialization(String specialization) {
+        this.specialization = specialization;
     }
 
     public LocalDateTime getCreatedAt() {

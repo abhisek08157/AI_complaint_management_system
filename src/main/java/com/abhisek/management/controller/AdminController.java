@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -42,5 +43,14 @@ public class AdminController {
     @GetMapping("/dashboard")
     public ResponseEntity<DashboardResponse> getDashboard() {
         return ResponseEntity.ok(complaintService.getDashboardStats());
+    }
+
+    // --- NEW ENDPOINT FOR MANAGING STAFF SPECIALIZATION ---
+    @PutMapping("/staff/{id}/specialization")
+    public ResponseEntity<UserResponse> updateStaffSpecialization(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> payload) {
+        String specialization = payload.get("specialization");
+        return ResponseEntity.ok(complaintService.updateStaffSpecialization(id, specialization));
     }
 }

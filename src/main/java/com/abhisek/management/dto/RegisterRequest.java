@@ -10,6 +10,8 @@ public class RegisterRequest {
 
     private String role;
 
+    private String specialization;
+
     public String getName() {
         return name;
     }
@@ -40,5 +42,13 @@ public class RegisterRequest {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public String getSpecialization() {
+        return specialization;
+    }
+
+    public void setSpecialization(String specialization) {
+        this.specialization = specialization;
     }
 }
