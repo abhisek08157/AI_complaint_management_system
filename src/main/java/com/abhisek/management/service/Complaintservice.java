@@ -112,6 +112,25 @@ public class Complaintservice {
                 .toList();
     }
 
+    // --- new: update staff specialization ---
+    public UserResponse updateStaffSpecialization(Long staffId, String specialization) {
+        User staff = userRepository.findById(staffId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Staff member not found"));
+
+        if (!"STAFF".equalsIgnoreCase(staff.getRole())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "User is not a staff member");
+        }
+
+        if (specialization == null || specialization.isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Specialization cannot be empty");
+        }
+
+        staff.setSpecialization(specialization.trim());
+        User updatedStaff = userRepository.save(staff);
+
+        return new UserResponse(updatedStaff);
+    }
+
     // --- new: dashboard counts ---
     public DashboardResponse getDashboardStats() {
         long total = complaintRepository.count();
@@ -122,7 +141,7 @@ public class Complaintservice {
         return new DashboardResponse(total, submitted, assigned, inProgress, resolved);
     }
     
- // --- new: complaints assigned to a specific staff member ---
+    // --- new: complaints assigned to a specific staff member ---
     public List<ComplaintResponse> getComplaintsByStaff(Long staffId) {
         User staff = userRepository.findById(staffId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Staff not found"));

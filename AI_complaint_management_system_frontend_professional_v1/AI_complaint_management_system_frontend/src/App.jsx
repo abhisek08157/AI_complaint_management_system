@@ -14,6 +14,7 @@ import MyComplaints from "./pages/student/MyComplaints";
 
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ManageComplaints from "./pages/admin/ManageComplaints";
+import ManageStaff from "./pages/admin/ManageStaff";
 
 import StaffDashboard from "./pages/staff/StaffDashboard";
 
@@ -78,6 +79,15 @@ function App() {
           element={
             <ProtectedRoute role="ADMIN">
               <ManageComplaints />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/staff"
+          element={
+            <ProtectedRoute role="ADMIN">
+              <ManageStaff />
             </ProtectedRoute>
           }
         />

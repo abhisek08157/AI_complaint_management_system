@@ -1,4 +1,4 @@
-// src/main/java/com/abhisek/management/service/AuthService.java
+// src/main/java/com/abhisek.management/service/AuthService.java
 package com.abhisek.management.service;
 
 import com.abhisek.management.dto.LoginRequest;
@@ -13,15 +13,13 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-@Service // tells Spring: "this class contains business logic, manage it for me"
+@Service
 public class AuthService {
 
     private static final List<String> VALID_ROLES = List.of("STUDENT", "ADMIN", "STAFF");
 
     private final UserRepository userRepository;
 
-    // Spring automatically gives us a working UserRepository here — this is called
-    // "dependency injection". We don't create it ourselves, Spring hands it to us.
     public AuthService(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
@@ -44,13 +42,23 @@ public class AuthService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Role must be one of " + VALID_ROLES);
         }
 
+        // --- specialization handling ---
+        String specialization = null;
+        if ("STAFF".equals(role)) {
+            if (request.getSpecialization() == null || request.getSpecialization().isBlank()) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "Specialization is required for STAFF role");
+            }
+            // Ensure only a single primary specialization is stored
+            specialization = request.getSpecialization().split(",")[0].trim();
+        }
+
         // --- check for duplicate email ---
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new ApiException(HttpStatus.CONFLICT, "Email is already registered");
         }
 
         // --- save the new user ---
-        User user = new User(request.getName(), request.getEmail(), request.getPassword(), role);
+        User user = new User(request.getName(), request.getEmail(), request.getPassword(), role, specialization);
         User saved = userRepository.save(user);
 
         // return a clean response (no password included)
@@ -60,9 +68,6 @@ public class AuthService {
                 saved.getEmail(),
                 saved.getRole(),
                 "Registration successful"
-                
-        
-                
         );    
     }
     

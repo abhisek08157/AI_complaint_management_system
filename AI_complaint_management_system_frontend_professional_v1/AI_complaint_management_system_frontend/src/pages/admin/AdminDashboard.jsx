@@ -56,6 +56,9 @@ function AdminDashboard() {
 
           .dashboard-header {
             margin-bottom: 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
           }
 
           .dashboard-header h1 {
@@ -71,6 +74,21 @@ function AdminDashboard() {
             font-size: 15px;
             color: #72635B;
             margin: 0;
+          }
+
+          .manage-staff-btn {
+            background: #2C1F1D;
+            color: #F8F4EB;
+            text-decoration: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background-color 0.2s ease;
+          }
+
+          .manage-staff-btn:hover {
+            background: #3A2A27;
           }
 
           .alert.error {
@@ -219,18 +237,27 @@ function AdminDashboard() {
             .app-page {
               padding: 24px 16px;
             }
+            .dashboard-header {
+              flex-direction: column;
+              align-items: flex-start;
+              gap: 16px;
+            }
           }
         `}</style>
 
         <div className="dashboard-header">
-          <h1>Admin Dashboard</h1>
-          <p>Overview of incoming, active, and completed campus complaints.</p>
+          <div>
+            <h1>Admin Dashboard</h1>
+            <p>Overview of incoming, active, and completed campus complaints.</p>
+          </div>
+          <Link to="/admin/staff" className="manage-staff-btn">
+            Manage Staff Directory →
+          </Link>
         </div>
 
         {error && <div className="alert error">{error}</div>}
 
         <section className="stats-grid">
-          {/* Redirects to Manage Complaints on click */}
           <div
             className="stat-card clickable"
             onClick={() => navigate("/admin/complaints")}
