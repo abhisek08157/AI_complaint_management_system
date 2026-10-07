@@ -1,36 +1,30 @@
+
 package com.abhisek.management.dto;
 
-public class DashboardResponse {
+public class StaffDashboardResponse {
 
-    private long total;
-    private long submitted;
+    private long totalAssigned;
     private long assigned;
     private long inProgress;
     private long resolved;
 
-    public DashboardResponse() {
+    public StaffDashboardResponse() {
     }
 
-    public DashboardResponse(
-            long total,
-            long submitted,
+    public StaffDashboardResponse(
+            long totalAssigned,
             long assigned,
             long inProgress,
             long resolved) {
 
-        this.total = total;
-        this.submitted = submitted;
+        this.totalAssigned = totalAssigned;
         this.assigned = assigned;
         this.inProgress = inProgress;
         this.resolved = resolved;
     }
 
-    public long getTotal() {
-        return total;
-    }
-
-    public long getSubmitted() {
-        return submitted;
+    public long getTotalAssigned() {
+        return totalAssigned;
     }
 
     public long getAssigned() {

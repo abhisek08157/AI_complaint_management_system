@@ -10,6 +10,8 @@ public class LoginResponse {
 
     private String role;
 
+    private String token;
+
     private String message;
 
     public LoginResponse(
@@ -17,12 +19,14 @@ public class LoginResponse {
             String name,
             String email,
             String role,
+            String token,
             String message) {
 
         this.userId = userId;
         this.name = name;
         this.email = email;
         this.role = role;
+        this.token = token;
         this.message = message;
     }
 
@@ -40,6 +44,10 @@ public class LoginResponse {
 
     public String getRole() {
         return role;
+    }
+
+    public String getToken() {
+        return token;
     }
 
     public String getMessage() {

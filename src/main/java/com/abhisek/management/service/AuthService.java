@@ -1,4 +1,3 @@
-// src/main/java/com/abhisek.management/service/AuthService.java
 package com.abhisek.management.service;
 
 import com.abhisek.management.dto.LoginRequest;
@@ -9,84 +8,165 @@ import com.abhisek.management.exception.ApiException;
 import com.abhisek.management.repository.UserRepository;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 public class AuthService {
 
-    private static final List<String> VALID_ROLES = List.of("STUDENT", "ADMIN", "STAFF");
-
     private final UserRepository userRepository;
 
-    public AuthService(UserRepository userRepository) {
+    private final PasswordEncoder passwordEncoder;
+
+    private final JwtService jwtService;
+
+    public AuthService(
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService) {
+
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
     }
 
-    public LoginResponse register(RegisterRequest request) {
+    public LoginResponse register(
+            RegisterRequest request) {
 
-        // --- basic validation ---
-        if (request.getName() == null || request.getName().isBlank()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Name is required");
-        }
-        if (request.getEmail() == null || request.getEmail().isBlank()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Email is required");
-        }
-        if (request.getPassword() == null || request.getPassword().isBlank()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Password is required");
-        }
+        if (request.getName() == null ||
+                request.getName().isBlank()) {
 
-        String role = request.getRole() == null ? "" : request.getRole().toUpperCase();
-        if (!VALID_ROLES.contains(role)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Role must be one of " + VALID_ROLES);
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Name is required"
+            );
         }
 
-        // --- specialization handling ---
-        String specialization = null;
-        if ("STAFF".equals(role)) {
-            if (request.getSpecialization() == null || request.getSpecialization().isBlank()) {
-                throw new ApiException(HttpStatus.BAD_REQUEST, "Specialization is required for STAFF role");
-            }
-            // Ensure only a single primary specialization is stored
-            specialization = request.getSpecialization().split(",")[0].trim();
+        if (request.getEmail() == null ||
+                request.getEmail().isBlank()) {
+
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Email is required"
+            );
         }
 
-        // --- check for duplicate email ---
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new ApiException(HttpStatus.CONFLICT, "Email is already registered");
+        if (request.getPassword() == null ||
+                request.getPassword().isBlank()) {
+
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Password is required"
+            );
         }
 
-        // --- save the new user ---
-        User user = new User(request.getName(), request.getEmail(), request.getPassword(), role, specialization);
-        User saved = userRepository.save(user);
+        if (request.getPassword().length() < 6) {
 
-        // return a clean response (no password included)
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Password must contain at least 6 characters"
+            );
+        }
+
+        String email =
+                request.getEmail()
+                        .trim()
+                        .toLowerCase();
+
+        if (userRepository.existsByEmail(email)) {
+
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Email is already registered"
+            );
+        }
+
+        /*
+         * Public registration creates STUDENT accounts only.
+         *
+         * ADMIN and STAFF accounts will be created
+         * through protected administrative operations.
+         */
+
+        User user = new User(
+                request.getName().trim(),
+                email,
+                passwordEncoder.encode(
+                        request.getPassword()
+                ),
+                "STUDENT",
+                null
+        );
+
+        User saved =
+                userRepository.save(user);
+
+        String token =
+                jwtService.generateToken(
+                        saved.getEmail(),
+                        saved.getRole()
+                );
+
         return new LoginResponse(
                 saved.getId(),
                 saved.getName(),
                 saved.getEmail(),
                 saved.getRole(),
+                token,
                 "Registration successful"
-        );    
+        );
     }
-    
-    public LoginResponse login(LoginRequest request) {
 
-        // find the user by email — if not found, throw an error
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Invalid email or password"));
+    public LoginResponse login(
+            LoginRequest request) {
 
-        // check password matches exactly
-        if (!user.getPassword().equals(request.getPassword())) {
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid email or password");
+        if (request.getEmail() == null ||
+                request.getEmail().isBlank() ||
+                request.getPassword() == null ||
+                request.getPassword().isBlank()) {
+
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Email and password are required"
+            );
         }
+
+        String email =
+                request.getEmail()
+                        .trim()
+                        .toLowerCase();
+
+        User user =
+                userRepository.findByEmail(email)
+                        .orElseThrow(() ->
+                                new ApiException(
+                                        HttpStatus.UNAUTHORIZED,
+                                        "Invalid email or password"
+                                )
+                        );
+
+        if (!passwordEncoder.matches(
+                request.getPassword(),
+                user.getPassword())) {
+
+            throw new ApiException(
+                    HttpStatus.UNAUTHORIZED,
+                    "Invalid email or password"
+            );
+        }
+
+        String token =
+                jwtService.generateToken(
+                        user.getEmail(),
+                        user.getRole()
+                );
 
         return new LoginResponse(
                 user.getId(),
                 user.getName(),
                 user.getEmail(),
                 user.getRole(),
+                token,
                 "Login successful"
         );
     }
