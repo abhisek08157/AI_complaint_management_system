@@ -1,6 +1,8 @@
 package com.abhisek.management.controller;
 
 import com.abhisek.management.dto.CampusRequestCreate;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import com.abhisek.management.dto.CampusRequestResponse;
 import com.abhisek.management.dto.CampusRequestUpdate;
 import com.abhisek.management.service.CampusRequestService;
@@ -22,6 +24,30 @@ public class CampusRequestController {
 
         this.requestService = requestService;
     }
+ // ============================================================
+ // STUDENT - DOWNLOAD CERTIFICATE
+ // ============================================================
+
+ @GetMapping("/{id}/certificate")
+ public ResponseEntity<byte[]> downloadCertificate(
+         @PathVariable Long id) {
+
+     byte[] pdf =
+             requestService.downloadCertificate(id);
+
+
+     return ResponseEntity.ok()
+             .header(
+                     HttpHeaders.CONTENT_DISPOSITION,
+                     "attachment; filename=\"CampusOne_Certificate_"
+                             + id
+                             + ".pdf\""
+             )
+             .contentType(
+                     MediaType.APPLICATION_PDF
+             )
+             .body(pdf);
+ }
 
     // ============================================================
     // STUDENT - CREATE REQUEST

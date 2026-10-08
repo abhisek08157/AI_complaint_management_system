@@ -2,10 +2,15 @@ from fastapi import FastAPI
 
 from app.schemas.complaint import (
     ComplaintRequest,
+    AIAnalysisResponse,
     RecurringAnalysisRequest,
+    RecurringAnalysisResponse,
     DuplicateAnalysisRequest,
+    DuplicateAnalysisResponse,
     ResolutionAnalysisRequest,
-    AdminInsightRequest
+    ResolutionAnalysisResponse,
+    AdminInsightRequest,
+    AdminInsightResponse
 )
 
 from app.services.ai_service import (
@@ -16,43 +21,112 @@ from app.services.ai_service import (
     analyze_admin_insights
 )
 
-app = FastAPI()
 
+app = FastAPI(
+    title="CampusOne AI Service",
+    version="1.0.0"
+)
+
+
+# ============================================================
+# ROOT
+# ============================================================
 
 @app.get("/")
 def root():
-    return {"message": "AI service is running"}
+    return {
+        "message": "CampusOne AI Service is running"
+    }
 
+
+# ============================================================
+# HEALTH CHECK
+# ============================================================
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {
+        "status": "UP",
+        "service": "CampusOne AI Service"
+    }
 
 
-@app.post("/api/v1/analyze/complaint")
-def analyze(complaint: ComplaintRequest):
+# ============================================================
+# COMPLAINT ANALYSIS
+# ============================================================
+
+@app.post(
+    "/api/v1/analyze/complaint",
+    response_model=AIAnalysisResponse
+)
+def complaint_analysis(
+    request: ComplaintRequest
+):
+
     return analyze_complaint(
-        complaint.complaintId,
-        complaint.title,
-        complaint.description,
-        complaint.location,
-        complaint.context
+        complaintId=request.complaintId,
+        title=request.title,
+        description=request.description,
+        location=request.location,
+        context=request.context
     )
 
 
-@app.post("/api/v1/analyze/recurring")
-def analyze_recurring_complaint(request: RecurringAnalysisRequest):
+# ============================================================
+# RECURRING COMPLAINT ANALYSIS
+# ============================================================
+
+@app.post(
+    "/api/v1/analyze/recurring",
+    response_model=RecurringAnalysisResponse
+)
+def recurring_analysis(
+    request: RecurringAnalysisRequest
+):
+
     return analyze_recurring(request)
 
 
-@app.post("/api/v1/analyze/duplicate")
-def analyze_duplicate_complaint(request: DuplicateAnalysisRequest):
+# ============================================================
+# DUPLICATE COMPLAINT ANALYSIS
+# ============================================================
+
+@app.post(
+    "/api/v1/analyze/duplicate",
+    response_model=DuplicateAnalysisResponse
+)
+def duplicate_analysis(
+    request: DuplicateAnalysisRequest
+):
+
     return analyze_duplicate(request)
 
-@app.post("/api/v1/analyze/resolution")
-def analyze_resolution_complaint(request: ResolutionAnalysisRequest):
+
+# ============================================================
+# RESOLUTION SUGGESTION
+# ============================================================
+
+@app.post(
+    "/api/v1/analyze/resolution",
+    response_model=ResolutionAnalysisResponse
+)
+def resolution_analysis(
+    request: ResolutionAnalysisRequest
+):
+
     return analyze_resolution(request)
 
-@app.post("/api/v1/analyze/admin-insights")
-def analyze_admin_insights_endpoint(request: AdminInsightRequest):
+
+# ============================================================
+# ADMIN INSIGHTS
+# ============================================================
+
+@app.post(
+    "/api/v1/analyze/admin-insights",
+    response_model=AdminInsightResponse
+)
+def admin_insights(
+    request: AdminInsightRequest
+):
+
     return analyze_admin_insights(request)

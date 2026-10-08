@@ -22,20 +22,91 @@ public class CampusRequestService {
     private final UserRepository userRepository;
     private final CurrentUserService currentUserService;
     private final NotificationService notificationService;
+    private final CertificateService certificateService;
 
     
-            public CampusRequestService(
-                    CampusRequestRepository requestRepository,
-                    UserRepository userRepository,
-                    CurrentUserService currentUserService,
-                    NotificationService notificationService) {
+    public CampusRequestService(
+            CampusRequestRepository requestRepository,
+            UserRepository userRepository,
+            CurrentUserService currentUserService,
+            NotificationService notificationService,
+            CertificateService certificateService) {
 
-                this.requestRepository = requestRepository;
-                this.userRepository = userRepository;
-                this.currentUserService = currentUserService;
-                this.notificationService = notificationService;
-            }
+        this.requestRepository = requestRepository;
+        this.userRepository = userRepository;
+        this.currentUserService = currentUserService;
+        this.notificationService = notificationService;
+        this.certificateService = certificateService;
+    }
+ // ============================================================
+ // CERTIFICATE - DOWNLOAD
+ // ============================================================
 
+ public byte[] downloadCertificate(Long id) {
+
+     CampusRequest request =
+             requestRepository.findById(id)
+                     .orElseThrow(() -> new ApiException(
+                             HttpStatus.NOT_FOUND,
+                             "Campus request not found"
+                     ));
+
+
+     User currentUser =
+             currentUserService.getCurrentUser();
+
+
+     // --------------------------------------------------------
+     // Only ADMIN or the owner STUDENT can download
+     // --------------------------------------------------------
+
+     boolean isAdmin =
+             "ADMIN".equalsIgnoreCase(
+                     currentUser.getRole()
+             );
+
+     boolean isOwnerStudent =
+             "STUDENT".equalsIgnoreCase(
+                     currentUser.getRole()
+             )
+             &&
+             request.getUser() != null
+             &&
+             request.getUser()
+                     .getId()
+                     .equals(currentUser.getId());
+
+
+     if (!isAdmin && !isOwnerStudent) {
+
+         throw new ApiException(
+                 HttpStatus.FORBIDDEN,
+                 "You are not allowed to download this certificate"
+         );
+     }
+
+
+     // --------------------------------------------------------
+     // Certificate only available after approval
+     // --------------------------------------------------------
+
+     if (!"APPROVED".equalsIgnoreCase(
+             request.getStatus())
+             &&
+             !"COMPLETED".equalsIgnoreCase(
+                     request.getStatus())) {
+
+         throw new ApiException(
+                 HttpStatus.BAD_REQUEST,
+                 "Certificate is available only after the request is approved"
+         );
+     }
+
+
+     return certificateService.generateCertificate(
+             request
+     );
+ }
     // ============================================================
     // STUDENT - CREATE REQUEST
     // ============================================================

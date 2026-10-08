@@ -4,6 +4,8 @@ import com.abhisek.management.dto.AiAnalysisResult;
 import com.abhisek.management.dto.ComplaintRequest;
 import com.abhisek.management.dto.ComplaintResponse;
 import com.abhisek.management.dto.DashboardResponse;
+import com.abhisek.management.dto.DuplicateAnalysisResult;
+import com.abhisek.management.dto.RecurringAnalysisResult;
 import com.abhisek.management.dto.StatusUpdateRequest;
 import com.abhisek.management.dto.UserResponse;
 import com.abhisek.management.entity.Complaint;
@@ -14,7 +16,9 @@ import com.abhisek.management.repository.UserRepository;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -26,6 +30,7 @@ public class Complaintservice {
     private final AiService aiService;
     private final CurrentUserService currentUserService;
     private final NotificationService notificationService;
+
     public Complaintservice(
             ComplaintRepository complaintRepository,
             UserRepository userRepository,
@@ -33,12 +38,12 @@ public class Complaintservice {
             CurrentUserService currentUserService,
             NotificationService notificationService) {
 
-                this.complaintRepository = complaintRepository;
-                this.userRepository = userRepository;
-                this.aiService = aiService;
-                this.currentUserService = currentUserService;
-                this.notificationService = notificationService;
-            }
+        this.complaintRepository = complaintRepository;
+        this.userRepository = userRepository;
+        this.aiService = aiService;
+        this.currentUserService = currentUserService;
+        this.notificationService = notificationService;
+    }
 
     // ============================================================
     // CREATE COMPLAINT
@@ -63,14 +68,9 @@ public class Complaintservice {
             );
         }
 
-        /*
-         * AI analysis
-         */
-        AiAnalysisResult analysis =
-                aiService.analyzeComplaint(
-                        request.getTitle(),
-                        request.getDescription()
-                );
+        // ========================================================
+        // CREATE COMPLAINT FIRST
+        // ========================================================
 
         Complaint complaint = new Complaint();
 
@@ -79,28 +79,252 @@ public class Complaintservice {
         complaint.setLocation(request.getLocation().trim());
         complaint.setUser(student);
 
-        complaint.setCategory(analysis.getCategory());
-        complaint.setPriority(analysis.getPriority());
-        complaint.setSummary(analysis.getSummary());
+        // Temporary values before AI analysis
+        complaint.setCategory("OTHER");
+        complaint.setPriority("MEDIUM");
+        complaint.setSummary(
+                "Complaint submitted. AI analysis is being processed."
+        );
 
         Complaint saved = complaintRepository.save(complaint);
 
-     // Notify all admins about the new complaint
-     List<User> admins = userRepository.findByRole("ADMIN");
+        // ========================================================
+        // AI COMPLAINT ANALYSIS
+        // ========================================================
 
-     for (User admin : admins) {
-         notificationService.createNotification(
-                 admin,
-                 "New Complaint Submitted",
-                 "A new complaint has been submitted by "
-                         + student.getEmail()
-                         + ". Complaint ID: "
-                         + saved.getId(),
-                 "COMPLAINT"
-         );
-     }
+        try {
 
-     return new ComplaintResponse(saved);
+            AiAnalysisResult analysis =
+                    aiService.analyzeComplaint(
+                            saved.getId(),
+                            saved.getTitle(),
+                            saved.getDescription(),
+                            saved.getLocation()
+                    );
+
+            if (analysis != null) {
+
+                if (analysis.getCategory() != null) {
+                    saved.setCategory(
+                            analysis.getCategory()
+                    );
+                }
+
+                if (analysis.getPriority() != null) {
+                    saved.setPriority(
+                            analysis.getPriority()
+                    );
+                }
+
+                if (analysis.getSummary() != null) {
+                    saved.setSummary(
+                            analysis.getSummary()
+                    );
+                }
+            }
+
+        } catch (Exception e) {
+
+            System.out.println(
+                    "Complaint AI analysis failed: "
+                            + e.getMessage()
+            );
+        }
+
+        // ========================================================
+        // AI DUPLICATE + RECURRING ANALYSIS
+        // ========================================================
+
+        try {
+
+            /*
+             * Store the ID in a separate final/effectively-final
+             * variable.
+             *
+             * This fixes the lambda error:
+             * !c.getId().equals(saved.getId())
+             */
+            Long savedComplaintId = saved.getId();
+
+            List<Complaint> historicalComplaints =
+                    complaintRepository
+                            .findAllByOrderByCreatedAtDesc()
+                            .stream()
+                            .filter(c ->
+                                    !c.getId()
+                                            .equals(savedComplaintId)
+                            )
+                            .limit(20)
+                            .toList();
+
+            // ----------------------------------------------------
+            // DUPLICATE ANALYSIS
+            // ----------------------------------------------------
+
+            if (!historicalComplaints.isEmpty()) {
+
+                try {
+
+                    DuplicateAnalysisResult duplicateResult =
+                            aiService.analyzeDuplicate(
+                                    saved,
+                                    historicalComplaints
+                            );
+
+                    if (duplicateResult != null) {
+
+                        saved.setPossibleDuplicate(
+                                duplicateResult.isPossibleDuplicate()
+                        );
+
+                        saved.setMatchedComplaintId(
+                                duplicateResult.getMatchedComplaintId()
+                        );
+
+                        saved.setDuplicateReason(
+                                duplicateResult.getSimilarityReason()
+                        );
+                    }
+
+                } catch (Exception e) {
+
+                    System.out.println(
+                            "Duplicate AI analysis failed: "
+                                    + e.getMessage()
+                    );
+                }
+
+                // ------------------------------------------------
+                // RECURRING ANALYSIS
+                // ------------------------------------------------
+
+                try {
+
+                    RecurringAnalysisResult recurringResult =
+                            aiService.analyzeRecurring(
+                                    saved,
+                                    historicalComplaints
+                            );
+
+                    if (recurringResult != null) {
+
+                        saved.setPossibleRecurringIssue(
+                                recurringResult
+                                        .isPossibleRecurringIssue()
+                        );
+
+                        saved.setRecurringReason(
+                                recurringResult.getReason()
+                        );
+                    }
+
+                } catch (Exception e) {
+
+                    System.out.println(
+                            "Recurring AI analysis failed: "
+                                    + e.getMessage()
+                    );
+                }
+
+                // Save AI results
+                saved = complaintRepository.save(saved);
+            }
+
+        } catch (Exception e) {
+
+            System.out.println(
+                    "Historical complaint AI analysis failed: "
+                            + e.getMessage()
+            );
+        }
+
+        // ========================================================
+        // NOTIFY ADMINS
+        // ========================================================
+
+        try {
+
+            List<User> admins =
+                    userRepository.findByRole("ADMIN");
+
+            for (User admin : admins) {
+
+                notificationService.createNotification(
+                        admin,
+                        "New Complaint Submitted",
+                        "A new complaint #" + saved.getId()
+                                + " has been submitted.",
+                        "COMPLAINT"
+                );
+            }
+
+        } catch (Exception e) {
+
+            System.out.println(
+                    "Complaint notification failed: "
+                            + e.getMessage()
+            );
+        }
+
+        return new ComplaintResponse(saved);
+    }
+
+    // ============================================================
+    // MANUAL RECURRING ANALYSIS
+    // ============================================================
+
+    public RecurringAnalysisResult analyzeRecurringIssue(
+            Long complaintId) {
+
+        Complaint currentComplaint =
+                complaintRepository.findById(complaintId)
+                        .orElseThrow(() -> new ApiException(
+                                HttpStatus.NOT_FOUND,
+                                "Complaint not found"
+                        ));
+
+        List<Complaint> historicalComplaints =
+                complaintRepository
+                        .findAllByOrderByCreatedAtDesc()
+                        .stream()
+                        .filter(c ->
+                                !c.getId().equals(complaintId)
+                        )
+                        .toList();
+
+        return aiService.analyzeRecurring(
+                currentComplaint,
+                historicalComplaints
+        );
+    }
+
+    // ============================================================
+    // MANUAL DUPLICATE ANALYSIS
+    // ============================================================
+
+    public DuplicateAnalysisResult analyzeDuplicateComplaint(
+            Long complaintId) {
+
+        Complaint currentComplaint =
+                complaintRepository.findById(complaintId)
+                        .orElseThrow(() -> new ApiException(
+                                HttpStatus.NOT_FOUND,
+                                "Complaint not found"
+                        ));
+
+        List<Complaint> historicalComplaints =
+                complaintRepository
+                        .findAllByOrderByCreatedAtDesc()
+                        .stream()
+                        .filter(c ->
+                                !c.getId().equals(complaintId)
+                        )
+                        .toList();
+
+        return aiService.analyzeDuplicate(
+                currentComplaint,
+                historicalComplaints
+        );
     }
 
     // ============================================================
@@ -123,28 +347,28 @@ public class Complaintservice {
 
     public ComplaintResponse getComplaintById(Long id) {
 
-        Complaint complaint = complaintRepository.findById(id)
-                .orElseThrow(() -> new ApiException(
-                        HttpStatus.NOT_FOUND,
-                        "Complaint not found"
-                ));
+        Complaint complaint =
+                complaintRepository.findById(id)
+                        .orElseThrow(() -> new ApiException(
+                                HttpStatus.NOT_FOUND,
+                                "Complaint not found"
+                        ));
 
-        User currentUser = currentUserService.getCurrentUser();
+        User currentUser =
+                currentUserService.getCurrentUser();
 
-        /*
-         * ADMIN can view every complaint.
-         */
+        // ADMIN can view every complaint
         if ("ADMIN".equalsIgnoreCase(currentUser.getRole())) {
             return new ComplaintResponse(complaint);
         }
 
-        /*
-         * STUDENT can view only their own complaint.
-         */
+        // STUDENT can view only their own complaint
         if ("STUDENT".equalsIgnoreCase(currentUser.getRole())) {
 
             if (complaint.getUser() == null ||
-                    !complaint.getUser().getId().equals(currentUser.getId())) {
+                    !complaint.getUser()
+                            .getId()
+                            .equals(currentUser.getId())) {
 
                 throw new ApiException(
                         HttpStatus.FORBIDDEN,
@@ -155,9 +379,7 @@ public class Complaintservice {
             return new ComplaintResponse(complaint);
         }
 
-        /*
-         * STAFF can view only complaints assigned to them.
-         */
+        // STAFF can view only assigned complaints
         if ("STAFF".equalsIgnoreCase(currentUser.getRole())) {
 
             if (complaint.getAssignedStaff() == null ||
@@ -184,14 +406,14 @@ public class Complaintservice {
     // GET CURRENT USER'S COMPLAINTS
     // ============================================================
 
-    public List<ComplaintResponse> getComplaintsByUser(Long userId) {
+    public List<ComplaintResponse> getComplaintsByUser(
+            Long userId) {
 
-        User currentUser = currentUserService.getCurrentUser();
+        User currentUser =
+                currentUserService.getCurrentUser();
 
-        /*
-         * Prevent one student from requesting another student's
-         * complaints by changing the userId in the request.
-         */
+        // Prevent one student from requesting another
+        // student's complaints
         if ("STUDENT".equalsIgnoreCase(currentUser.getRole())
                 && !currentUser.getId().equals(userId)) {
 
@@ -222,17 +444,19 @@ public class Complaintservice {
             Long complaintId,
             Long staffId) {
 
-        Complaint complaint = complaintRepository.findById(complaintId)
-                .orElseThrow(() -> new ApiException(
-                        HttpStatus.NOT_FOUND,
-                        "Complaint not found"
-                ));
+        Complaint complaint =
+                complaintRepository.findById(complaintId)
+                        .orElseThrow(() -> new ApiException(
+                                HttpStatus.NOT_FOUND,
+                                "Complaint not found"
+                        ));
 
-        User staff = userRepository.findById(staffId)
-                .orElseThrow(() -> new ApiException(
-                        HttpStatus.NOT_FOUND,
-                        "Staff not found"
-                ));
+        User staff =
+                userRepository.findById(staffId)
+                        .orElseThrow(() -> new ApiException(
+                                HttpStatus.NOT_FOUND,
+                                "Staff not found"
+                        ));
 
         if (!"STAFF".equalsIgnoreCase(staff.getRole())) {
 
@@ -245,30 +469,32 @@ public class Complaintservice {
         complaint.setAssignedStaff(staff);
         complaint.setStatus("ASSIGNED");
 
-        Complaint saved = complaintRepository.save(complaint);
+        Complaint saved =
+                complaintRepository.save(complaint);
 
-     // Notify assigned staff
-     notificationService.createNotification(
-             staff,
-             "Complaint Assigned",
-             "Complaint #" + saved.getId()
-                     + " has been assigned to you.",
-             "COMPLAINT"
-     );
+        // Notify assigned staff
+        notificationService.createNotification(
+                staff,
+                "Complaint Assigned",
+                "Complaint #" + saved.getId()
+                        + " has been assigned to you.",
+                "COMPLAINT"
+        );
 
-     // Notify student
-     if (complaint.getUser() != null) {
-         notificationService.createNotification(
-                 complaint.getUser(),
-                 "Complaint Assigned",
-                 "Your complaint #" + saved.getId()
-                         + " has been assigned to "
-                         + staff.getEmail() + ".",
-                 "COMPLAINT"
-         );
-     }
+        // Notify student
+        if (complaint.getUser() != null) {
 
-     return new ComplaintResponse(saved);
+            notificationService.createNotification(
+                    complaint.getUser(),
+                    "Complaint Assigned",
+                    "Your complaint #" + saved.getId()
+                            + " has been assigned to "
+                            + staff.getEmail() + ".",
+                    "COMPLAINT"
+            );
+        }
+
+        return new ComplaintResponse(saved);
     }
 
     // ============================================================
@@ -277,7 +503,8 @@ public class Complaintservice {
 
     public List<UserResponse> getStaffList() {
 
-        return userRepository.findByRole("STAFF")
+        return userRepository
+                .findByRole("STAFF")
                 .stream()
                 .map(UserResponse::new)
                 .toList();
@@ -291,11 +518,12 @@ public class Complaintservice {
             Long staffId,
             String specialization) {
 
-        User staff = userRepository.findById(staffId)
-                .orElseThrow(() -> new ApiException(
-                        HttpStatus.NOT_FOUND,
-                        "Staff member not found"
-                ));
+        User staff =
+                userRepository.findById(staffId)
+                        .orElseThrow(() -> new ApiException(
+                                HttpStatus.NOT_FOUND,
+                                "Staff member not found"
+                        ));
 
         if (!"STAFF".equalsIgnoreCase(staff.getRole())) {
 
@@ -314,9 +542,12 @@ public class Complaintservice {
             );
         }
 
-        staff.setSpecialization(specialization.trim());
+        staff.setSpecialization(
+                specialization.trim()
+        );
 
-        User updatedStaff = userRepository.save(staff);
+        User updatedStaff =
+                userRepository.save(staff);
 
         return new UserResponse(updatedStaff);
     }
@@ -327,7 +558,8 @@ public class Complaintservice {
 
     public DashboardResponse getDashboardStats() {
 
-        long total = complaintRepository.count();
+        long total =
+                complaintRepository.count();
 
         long submitted =
                 complaintRepository.countByStatus("SUBMITTED");
@@ -357,11 +589,10 @@ public class Complaintservice {
     public List<ComplaintResponse> getComplaintsByStaff(
             Long staffId) {
 
-        User currentUser = currentUserService.getCurrentUser();
+        User currentUser =
+                currentUserService.getCurrentUser();
 
-        /*
-         * STAFF can only request their own assigned complaints.
-         */
+        // STAFF can only request their own assigned complaints
         if ("STAFF".equalsIgnoreCase(currentUser.getRole())
                 && !currentUser.getId().equals(staffId)) {
 
@@ -371,11 +602,12 @@ public class Complaintservice {
             );
         }
 
-        User staff = userRepository.findById(staffId)
-                .orElseThrow(() -> new ApiException(
-                        HttpStatus.NOT_FOUND,
-                        "Staff not found"
-                ));
+        User staff =
+                userRepository.findById(staffId)
+                        .orElseThrow(() -> new ApiException(
+                                HttpStatus.NOT_FOUND,
+                                "Staff not found"
+                        ));
 
         if (!"STAFF".equalsIgnoreCase(staff.getRole())) {
 
@@ -400,18 +632,17 @@ public class Complaintservice {
             Long complaintId,
             StatusUpdateRequest request) {
 
-        Complaint complaint = complaintRepository.findById(complaintId)
-                .orElseThrow(() -> new ApiException(
-                        HttpStatus.NOT_FOUND,
-                        "Complaint not found"
-                ));
+        Complaint complaint =
+                complaintRepository.findById(complaintId)
+                        .orElseThrow(() -> new ApiException(
+                                HttpStatus.NOT_FOUND,
+                                "Complaint not found"
+                        ));
 
-        User currentUser = currentUserService.getCurrentUser();
+        User currentUser =
+                currentUserService.getCurrentUser();
 
-        /*
-         * Verify that the current staff member is actually
-         * assigned to this complaint.
-         */
+        // Verify assigned staff
         if ("STAFF".equalsIgnoreCase(currentUser.getRole())) {
 
             if (complaint.getAssignedStaff() == null ||
@@ -426,7 +657,8 @@ public class Complaintservice {
             }
         }
 
-        String newStatus = request.getStatus();
+        String newStatus =
+                request.getStatus();
 
         List<String> validStatuses =
                 List.of(
@@ -440,7 +672,8 @@ public class Complaintservice {
 
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
-                    "Status must be one of " + validStatuses
+                    "Status must be one of "
+                            + validStatuses
             );
         }
 
@@ -467,7 +700,8 @@ public class Complaintservice {
         // Notify student when complaint status changes
         if (complaint.getUser() != null) {
 
-            String notificationTitle = "Complaint Status Updated";
+            String notificationTitle =
+                    "Complaint Status Updated";
 
             String notificationMessage =
                     "Your complaint #" + saved.getId()
@@ -475,9 +709,13 @@ public class Complaintservice {
                             + newStatus + ".";
 
             if ("RESOLVED".equals(newStatus)) {
-                notificationTitle = "Complaint Resolved";
+
+                notificationTitle =
+                        "Complaint Resolved";
+
                 notificationMessage =
-                        "Your complaint #" + saved.getId()
+                        "Your complaint #"
+                                + saved.getId()
                                 + " has been resolved.";
             }
 
@@ -491,6 +729,245 @@ public class Complaintservice {
 
         return new ComplaintResponse(saved);
     }
+ // ============================================================
+ // STUDENT - CONFIRM COMPLAINT RESOLUTION
+ // ============================================================
+
+ public ComplaintResponse confirmResolution(
+         Long complaintId,
+         boolean confirmed) {
+
+     Complaint complaint =
+             complaintRepository.findById(complaintId)
+                     .orElseThrow(() -> new ApiException(
+                             HttpStatus.NOT_FOUND,
+                             "Complaint not found"
+                     ));
+
+     User currentUser =
+             currentUserService.getCurrentUser();
+
+     // Only students can confirm resolution
+     if (!"STUDENT".equalsIgnoreCase(currentUser.getRole())) {
+
+         throw new ApiException(
+                 HttpStatus.FORBIDDEN,
+                 "Only students can confirm complaint resolution"
+         );
+     }
+
+     // Student can confirm only their own complaint
+     if (complaint.getUser() == null ||
+             !complaint.getUser()
+                     .getId()
+                     .equals(currentUser.getId())) {
+
+         throw new ApiException(
+                 HttpStatus.FORBIDDEN,
+                 "You can only confirm your own complaint"
+         );
+     }
+
+     // Complaint must be resolved by staff first
+     if (!"RESOLVED".equalsIgnoreCase(
+             complaint.getStatus())) {
+
+         throw new ApiException(
+                 HttpStatus.BAD_REQUEST,
+                 "Only resolved complaints can be confirmed"
+         );
+     }
+
+     if (confirmed) {
+
+         // Student accepts the resolution
+         complaint.setStudentConfirmed(true);
+         complaint.setConfirmedAt(LocalDateTime.now());
+         complaint.setStatus("CLOSED");
+
+     } else {
+
+         // Student says issue is still not resolved
+         complaint.setStudentConfirmed(false);
+         complaint.setConfirmedAt(null);
+         complaint.setStatus("IN_PROGRESS");
+     }
+
+     Complaint saved =
+             complaintRepository.save(complaint);
+
+     // Notify assigned staff
+     if (complaint.getAssignedStaff() != null) {
+
+         String title;
+         String message;
+
+         if (confirmed) {
+
+             title = "Complaint Closed";
+
+             message =
+                     "Student has confirmed that complaint #"
+                             + saved.getId()
+                             + " has been resolved.";
+
+         } else {
+
+             title = "Complaint Reopened";
+
+             message =
+                     "Student has reported that complaint #"
+                             + saved.getId()
+                             + " is still not resolved.";
+         }
+
+         notificationService.createNotification(
+                 complaint.getAssignedStaff(),
+                 title,
+                 message,
+                 "COMPLAINT"
+         );
+     }
+
+     return new ComplaintResponse(saved);
+ }
+
+
+    // ============================================================
+    // STUDENT - UPLOAD COMPLAINT PHOTO
+    // ============================================================
+
+    public void uploadComplaintPhoto(
+            Long complaintId,
+            MultipartFile file) {
+
+        if (file == null || file.isEmpty()) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Please select an image"
+            );
+        }
+
+        if (file.getSize() > 5 * 1024 * 1024) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Image size must not exceed 5 MB"
+            );
+        }
+
+        String contentType = file.getContentType();
+
+        if (contentType == null ||
+                !(contentType.equalsIgnoreCase("image/jpeg")
+                        || contentType.equalsIgnoreCase("image/png")
+                        || contentType.equalsIgnoreCase("image/webp"))) {
+
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Only JPG, PNG and WEBP images are allowed"
+            );
+        }
+
+        Complaint complaint =
+                complaintRepository.findById(complaintId)
+                        .orElseThrow(() -> new ApiException(
+                                HttpStatus.NOT_FOUND,
+                                "Complaint not found"
+                        ));
+
+        User currentUser =
+                currentUserService.getCurrentUser();
+
+        if (!"STUDENT".equalsIgnoreCase(currentUser.getRole())) {
+            throw new ApiException(
+                    HttpStatus.FORBIDDEN,
+                    "Only students can upload complaint photos"
+            );
+        }
+
+        if (complaint.getUser() == null ||
+                !complaint.getUser().getId()
+                        .equals(currentUser.getId())) {
+
+            throw new ApiException(
+                    HttpStatus.FORBIDDEN,
+                    "You can only upload a photo to your own complaint"
+            );
+        }
+
+        try {
+            complaint.setPhoto(file.getBytes());
+            complaint.setPhotoName(file.getOriginalFilename());
+            complaint.setPhotoContentType(contentType);
+
+            complaintRepository.save(complaint);
+
+        } catch (IOException e) {
+            throw new ApiException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to upload complaint photo"
+            );
+        }
+    }
+
+
+    // ============================================================
+    // VIEW COMPLAINT PHOTO
+    // ADMIN / OWNER STUDENT / ASSIGNED STAFF
+    // ============================================================
+
+    public Complaint getComplaintPhoto(Long complaintId) {
+
+        Complaint complaint =
+                complaintRepository.findById(complaintId)
+                        .orElseThrow(() -> new ApiException(
+                                HttpStatus.NOT_FOUND,
+                                "Complaint not found"
+                        ));
+
+        User currentUser =
+                currentUserService.getCurrentUser();
+
+        if ("ADMIN".equalsIgnoreCase(currentUser.getRole())) {
+            return complaint;
+        }
+
+        if ("STUDENT".equalsIgnoreCase(currentUser.getRole())) {
+
+            if (complaint.getUser() == null ||
+                    !complaint.getUser().getId()
+                            .equals(currentUser.getId())) {
+
+                throw new ApiException(
+                        HttpStatus.FORBIDDEN,
+                        "You are not allowed to view this complaint photo"
+                );
+            }
+
+            return complaint;
+        }
+
+        if ("STAFF".equalsIgnoreCase(currentUser.getRole())) {
+
+            if (complaint.getAssignedStaff() == null ||
+                    !complaint.getAssignedStaff().getId()
+                            .equals(currentUser.getId())) {
+
+                throw new ApiException(
+                        HttpStatus.FORBIDDEN,
+                        "You are not assigned to this complaint"
+                );
+            }
+
+            return complaint;
+        }
+
+        throw new ApiException(
+                HttpStatus.FORBIDDEN,
+                "You are not allowed to view this complaint photo"
+        );
+    }
+
 
     // ============================================================
     // VALIDATE COMPLAINT REQUEST

@@ -7,38 +7,80 @@ import java.time.LocalDateTime;
 public class CampusRequestResponse {
 
     private Long id;
+
     private String requestType;
+
     private String description;
+
     private String status;
+
     private String adminRemarks;
 
     private Long userId;
+
     private String userName;
+
     private String userEmail;
 
     private LocalDateTime createdAt;
+
     private LocalDateTime updatedAt;
+
     private LocalDateTime completedAt;
+
+    private boolean certificateAvailable;
+
 
     public CampusRequestResponse(CampusRequest request) {
 
         this.id = request.getId();
-        this.requestType = request.getRequestType();
-        this.description = request.getDescription();
-        this.status = request.getStatus();
-        this.adminRemarks = request.getAdminRemarks();
+
+        this.requestType =
+                request.getRequestType();
+
+        this.description =
+                request.getDescription();
+
+        this.status =
+                request.getStatus();
+
+        this.adminRemarks =
+                request.getAdminRemarks();
+
 
         if (request.getUser() != null) {
 
-            this.userId = request.getUser().getId();
-            this.userName = request.getUser().getName();
-            this.userEmail = request.getUser().getEmail();
+            this.userId =
+                    request.getUser().getId();
+
+            this.userName =
+                    request.getUser().getName();
+
+            this.userEmail =
+                    request.getUser().getEmail();
         }
 
-        this.createdAt = request.getCreatedAt();
-        this.updatedAt = request.getUpdatedAt();
-        this.completedAt = request.getCompletedAt();
+
+        this.createdAt =
+                request.getCreatedAt();
+
+        this.updatedAt =
+                request.getUpdatedAt();
+
+        this.completedAt =
+                request.getCompletedAt();
+
+
+        this.certificateAvailable =
+                "APPROVED".equalsIgnoreCase(
+                        request.getStatus()
+                )
+                ||
+                "COMPLETED".equalsIgnoreCase(
+                        request.getStatus()
+                );
     }
+
 
     public Long getId() {
         return id;
@@ -82,5 +124,9 @@ public class CampusRequestResponse {
 
     public LocalDateTime getCompletedAt() {
         return completedAt;
+    }
+
+    public boolean isCertificateAvailable() {
+        return certificateAvailable;
     }
 }

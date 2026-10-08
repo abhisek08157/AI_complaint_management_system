@@ -1,12 +1,18 @@
 package com.abhisek.management.service;
 
 import com.abhisek.management.dto.AiAnalysisResult;
+import com.abhisek.management.dto.DuplicateAnalysisResult;
+import com.abhisek.management.dto.RecurringAnalysisResult;
+import com.abhisek.management.entity.Complaint;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -24,136 +30,222 @@ public class AiService {
     }
 
     // ============================================================
-    // ANALYZE COMPLAINT
+    // COMPLAINT ANALYSIS
     // ============================================================
 
     public AiAnalysisResult analyzeComplaint(
+            Long complaintId,
             String title,
-            String description) {
+            String description,
+            String location) {
 
         try {
 
-            Map<String, String> requestBody = Map.of(
-                    "title", title,
-                    "description", description
-            );
+            Map<String, Object> requestBody =
+                    new HashMap<>();
 
-            AiAnalysisResult response = restClient.post()
-                    .uri("/api/v1/analyze/complaint")
-                    .body(requestBody)
-                    .retrieve()
-                    .body(AiAnalysisResult.class);
+            requestBody.put("complaintId", complaintId);
+            requestBody.put("title", title);
+            requestBody.put("description", description);
+            requestBody.put("location", location);
+
+            Map<String, Object> context =
+                    new HashMap<>();
+
+            if (location != null && !location.isBlank()) {
+                context.put("location", location);
+            }
+
+            requestBody.put("context", context);
+
+            AiAnalysisResult response =
+                    restClient.post()
+                            .uri("/api/v1/analyze/complaint")
+                            .body(requestBody)
+                            .retrieve()
+                            .body(AiAnalysisResult.class);
 
             if (response == null) {
 
-                System.err.println(
-                        "AI service returned an empty response. "
-                                + "Using fallback analysis."
-                );
-
-                return createFallbackAnalysis(
-                        title,
-                        description
+                throw new RuntimeException(
+                        "AI service returned an empty response"
                 );
             }
 
-            return normalizeResponse(
-                    response,
-                    title,
-                    description
-            );
+            return response;
 
         } catch (RestClientException e) {
 
-            /*
-             * AI failure must NOT prevent complaint submission.
-             */
-
-            System.err.println(
-                    "AI service unavailable: "
-                            + e.getMessage()
-            );
-
-            return createFallbackAnalysis(
-                    title,
-                    description
+            throw new RuntimeException(
+                    "Failed to communicate with AI service: "
+                            + e.getMessage(),
+                    e
             );
         }
     }
 
+
     // ============================================================
-    // NORMALIZE AI RESPONSE
+    // RECURRING COMPLAINT ANALYSIS
     // ============================================================
 
-    private AiAnalysisResult normalizeResponse(
-            AiAnalysisResult response,
-            String title,
-            String description) {
+    public RecurringAnalysisResult analyzeRecurring(
+            Complaint currentComplaint,
+            List<Complaint> historicalComplaints) {
 
-        if (isBlank(response.getCategory())) {
-            response.setCategory("OTHER");
-        }
+        try {
 
-        if (isBlank(response.getPriority())) {
-            response.setPriority("MEDIUM");
-        }
+            Map<String, Object> currentComplaintData =
+                    buildHistoricalComplaint(currentComplaint);
 
-        if (isBlank(response.getSummary())) {
-            response.setSummary(
-                    buildFallbackSummary(title, description)
+            List<Map<String, Object>> historicalData =
+                    new ArrayList<>();
+
+            for (Complaint complaint : historicalComplaints) {
+
+                historicalData.add(
+                        buildHistoricalComplaint(complaint)
+                );
+            }
+
+            Map<String, Object> requestBody =
+                    new HashMap<>();
+
+            requestBody.put(
+                    "currentComplaint",
+                    currentComplaintData
+            );
+
+            requestBody.put(
+                    "historicalComplaints",
+                    historicalData
+            );
+
+            RecurringAnalysisResult response =
+                    restClient.post()
+                            .uri("/api/v1/analyze/recurring")
+                            .body(requestBody)
+                            .retrieve()
+                            .body(RecurringAnalysisResult.class);
+
+            if (response == null) {
+
+                throw new RuntimeException(
+                        "AI service returned an empty recurring-analysis response"
+                );
+            }
+
+            return response;
+
+        } catch (RestClientException e) {
+
+            throw new RuntimeException(
+                    "Failed to communicate with AI service for recurring analysis: "
+                            + e.getMessage(),
+                    e
             );
         }
-
-        if (isBlank(response.getDepartment())) {
-            response.setDepartment("GENERAL_ADMIN");
-        }
-
-        if (response.getConfidence() == null) {
-            response.setConfidence(0.0);
-        }
-
-        return response;
     }
 
+
     // ============================================================
-    // FALLBACK ANALYSIS
+    // DUPLICATE COMPLAINT ANALYSIS
     // ============================================================
 
-    private AiAnalysisResult createFallbackAnalysis(
-            String title,
-            String description) {
+    public DuplicateAnalysisResult analyzeDuplicate(
+            Complaint currentComplaint,
+            List<Complaint> historicalComplaints) {
 
-        return new AiAnalysisResult(
-                "OTHER",
-                "MEDIUM",
-                buildFallbackSummary(title, description),
-                "GENERAL_ADMIN",
-                0.0,
-                Map.of()
+        try {
+
+            Map<String, Object> currentComplaintData =
+                    buildHistoricalComplaint(currentComplaint);
+
+            List<Map<String, Object>> historicalData =
+                    new ArrayList<>();
+
+            for (Complaint complaint : historicalComplaints) {
+
+                historicalData.add(
+                        buildHistoricalComplaint(complaint)
+                );
+            }
+
+            Map<String, Object> requestBody =
+                    new HashMap<>();
+
+            requestBody.put(
+                    "currentComplaint",
+                    currentComplaintData
+            );
+
+            requestBody.put(
+                    "historicalComplaints",
+                    historicalData
+            );
+
+            DuplicateAnalysisResult response =
+                    restClient.post()
+                            .uri("/api/v1/analyze/duplicate")
+                            .body(requestBody)
+                            .retrieve()
+                            .body(DuplicateAnalysisResult.class);
+
+            if (response == null) {
+
+                throw new RuntimeException(
+                        "AI service returned an empty duplicate-analysis response"
+                );
+            }
+
+            return response;
+
+        } catch (RestClientException e) {
+
+            throw new RuntimeException(
+                    "Failed to communicate with AI service for duplicate analysis: "
+                            + e.getMessage(),
+                    e
+            );
+        }
+    }
+
+
+    // ============================================================
+    // BUILD HISTORICAL COMPLAINT DATA
+    // ============================================================
+
+    private Map<String, Object> buildHistoricalComplaint(
+            Complaint complaint) {
+
+        Map<String, Object> data =
+                new HashMap<>();
+
+        data.put(
+                "complaintId",
+                complaint.getId()
         );
-    }
 
-    // ============================================================
-    // FALLBACK SUMMARY
-    // ============================================================
+        data.put(
+                "title",
+                complaint.getTitle()
+        );
 
-    private String buildFallbackSummary(
-            String title,
-            String description) {
+        data.put(
+                "description",
+                complaint.getDescription()
+        );
 
-        if (title == null || title.isBlank()) {
-            return description;
-        }
+        data.put(
+                "location",
+                complaint.getLocation()
+        );
 
-        return title.trim();
-    }
+        data.put(
+                "category",
+                complaint.getCategory()
+        );
 
-    // ============================================================
-    // STRING VALIDATION
-    // ============================================================
-
-    private boolean isBlank(String value) {
-
-        return value == null || value.isBlank();
+        return data;
     }
 }
