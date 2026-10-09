@@ -9,7 +9,17 @@ export const getUser = () => {
     return null;
   }
 
-  return JSON.parse(user);
+  try {
+    return JSON.parse(user);
+  } catch (error) {
+    return null;
+  }
+};
+
+// Get the token saved after login
+export const getToken = () => {
+  const user = getUser();
+  return user?.token || null;
 };
 
 export const logout = () => {
@@ -17,5 +27,5 @@ export const logout = () => {
 };
 
 export const isLoggedIn = () => {
-  return localStorage.getItem("user") !== null;
+  return Boolean(getToken());
 };

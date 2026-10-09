@@ -15,11 +15,13 @@ function Navbar() {
           { label: "Dashboard", to: "/student", icon: "⌂" },
           { label: "Submit Complaint", to: "/student/submit", icon: "＋" },
           { label: "My Complaints", to: "/student/complaints", icon: "▤" },
+          { label: "Notifications", to: "/student/notifications", icon: "♧" },
         ]
       : role === "ADMIN"
         ? [
             { label: "Dashboard", to: "/admin", icon: "⌂" },
             { label: "Manage Complaints", to: "/admin/complaints", icon: "▤" },
+            { label: "Announcements", to: "/admin/announcements", icon: "▣" },
           ]
         : [{ label: "Dashboard", to: "/staff", icon: "⌂" }];
 

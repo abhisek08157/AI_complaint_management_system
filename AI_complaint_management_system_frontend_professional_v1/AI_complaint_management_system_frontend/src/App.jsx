@@ -11,12 +11,18 @@ import Register from "./pages/Register";
 import StudentDashboard from "./pages/student/StudentDashboard";
 import SubmitComplaint from "./pages/student/SubmitComplaint";
 import MyComplaints from "./pages/student/MyComplaints";
+import Notifications from "./pages/student/Notifications";
+import Announcements from "./pages/student/Announcements";
 
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ManageComplaints from "./pages/admin/ManageComplaints";
 import ManageStaff from "./pages/admin/ManageStaff";
+import ManageAnnouncements from "./pages/admin/ManageAnnouncements";
 
 import StaffDashboard from "./pages/staff/StaffDashboard";
+
+import WardenDashboard from "./pages/warden/WardenDashboard";
+import SecurityDashboard from "./pages/security/SecurityDashboard";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -24,19 +30,12 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Public routes */}
+        <Route path="/login" element={<Login />} />
 
-        {/* Public */}
-        <Route
-          path="/login"
-          element={<Login />}
-        />
+        <Route path="/register" element={<Register />} />
 
-        <Route
-          path="/register"
-          element={<Register />}
-        />
-
-        {/* Student */}
+        {/* Student routes */}
         <Route
           path="/student"
           element={
@@ -64,7 +63,29 @@ function App() {
           }
         />
 
-        {/* Admin */}
+        
+        <Route
+          path="/student/notifications"
+          element={
+            <ProtectedRoute role="STUDENT">
+              <Notifications />
+            </ProtectedRoute>
+          }
+        />
+
+        
+        <Route
+          path="/student/announcements"
+          element={
+            <ProtectedRoute role="STUDENT">
+              <Announcements />
+            </ProtectedRoute>
+          }
+        />
+
+
+
+        {/* Admin routes */}
         <Route
           path="/admin"
           element={
@@ -89,10 +110,21 @@ function App() {
             <ProtectedRoute role="ADMIN">
               <ManageStaff />
             </ProtectedRoute>
+          }  
+        />
+
+        
+        <Route
+          path="/admin/announcements"
+          element={
+            <ProtectedRoute role="ADMIN">
+              <ManageAnnouncements />
+            </ProtectedRoute>
           }
         />
 
-        {/* Staff */}
+
+        {/* Staff route */}
         <Route
           path="/staff"
           element={
@@ -102,12 +134,31 @@ function App() {
           }
         />
 
-        {/* Default */}
+        {/* Hostel Warden route */}
+        <Route
+          path="/warden"
+          element={
+            <ProtectedRoute role="HOSTEL_WARDEN">
+              <WardenDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Security route */}
+        <Route
+          path="/security"
+          element={
+            <ProtectedRoute role="SECURITY">
+              <SecurityDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Unknown routes */}
         <Route
           path="*"
           element={<Navigate to="/login" replace />}
         />
-
       </Routes>
     </BrowserRouter>
   );

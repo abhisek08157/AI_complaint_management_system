@@ -1,4 +1,3 @@
-
 package com.abhisek.management.repository;
 
 import com.abhisek.management.entity.GatePass;

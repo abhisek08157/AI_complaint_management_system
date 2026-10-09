@@ -1,30 +1,31 @@
 import { useEffect, useMemo, useState } from "react";
 import API from "../../services/api";
-import { getUser } from "../../utils/auth";
 import Navbar from "../../components/Navbar";
 import ComplaintCard from "../../components/ComplaintCard";
 
 function MyComplaints() {
-  const user = getUser();
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("ALL");
   const [search, setSearch] = useState("");
 
-  useEffect(() => {
-    const fetchComplaints = async () => {
-      try {
-        const response = await API.get(`/complaints/user/${user.userId}`);
-        setComplaints(Array.isArray(response.data) ? response.data : []);
-      } catch (err) {
-        setError(err.response?.data?.message || "Failed to load complaints.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchComplaints();
-  }, [user.userId]);
+useEffect(() => {
+  const fetchComplaints = async () => {
+    try {
+      const response = await API.get("/complaints/my");
+      setComplaints(Array.isArray(response.data) ? response.data : []);
+    } catch (err) {
+      setError(
+        err.response?.data?.message || "Failed to load complaints."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchComplaints();
+}, []);
 
   const filteredComplaints = useMemo(() => {
     return complaints.filter((item) => {

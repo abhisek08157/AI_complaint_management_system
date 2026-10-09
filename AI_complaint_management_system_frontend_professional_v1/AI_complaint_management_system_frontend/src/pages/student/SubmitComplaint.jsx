@@ -1,14 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../../services/api";
-import { getUser } from "../../utils/auth";
 import Navbar from "../../components/Navbar";
 
 const initialForm = { title: "", description: "", location: "" };
 
 function SubmitComplaint() {
   const navigate = useNavigate();
-  const user = getUser();
   const [form, setForm] = useState(initialForm);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -29,7 +27,7 @@ function SubmitComplaint() {
 
     setLoading(true);
     try {
-      const response = await API.post(`/complaints?userId=${user.userId}`, {
+      const response = await API.post("/complaints", {
         title: form.title.trim(),
         description: form.description.trim(),
         location: form.location.trim(),

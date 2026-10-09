@@ -15,7 +15,7 @@ function StudentDashboard() {
   useEffect(() => {
     const loadComplaints = async () => {
       try {
-        const response = await API.get(`/complaints/user/${user.userId}`);
+        const response = await API.get("/complaints/my");
         setComplaints(Array.isArray(response.data) ? response.data : []);
       } catch (err) {
         setError(err.response?.data?.message || "Unable to load dashboard data.");
@@ -24,7 +24,7 @@ function StudentDashboard() {
       }
     };
     loadComplaints();
-  }, [user.userId]);
+  }, []);
 
   const stats = useMemo(() => {
     const count = (status) => complaints.filter((item) => item.status === status).length;

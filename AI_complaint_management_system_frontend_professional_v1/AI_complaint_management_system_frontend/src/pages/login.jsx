@@ -29,17 +29,31 @@ function Login() {
 
     try {
       const response = await API.post("/auth/login", form);
-
       const user = response.data;
 
+      // Save the logged-in user and token
       saveUser(user);
 
-      if (user.role === "STUDENT") {
-        navigate("/student");
-      } else if (user.role === "ADMIN") {
-        navigate("/admin");
-      } else if (user.role === "STAFF") {
-        navigate("/staff");
+      // Redirect according to the user's role
+      const roleRoutes = {
+        STUDENT: "/student",
+        ADMIN: "/admin",
+        STAFF: "/staff",
+        HOSTEL_WARDEN: "/warden",
+        SECURITY: "/security",
+      };
+
+      const destination = roleRoutes[user.role];
+
+      if (destination) {
+        navigate(destination);
+      } else {
+        // Remove an account with an unsupported role
+        localStorage.removeItem("user");
+
+        setError(
+          "Your account has an unrecognized role. Please contact the administrator."
+        );
       }
     } catch (error) {
       setError(
@@ -83,8 +97,9 @@ function Login() {
           content: "";
           position: absolute;
           inset: 0;
-          background: radial-gradient(circle at 15% 20%, rgba(200, 138, 46, 0.18) 0%, transparent 45%),
-                      radial-gradient(circle at 85% 80%, rgba(139, 87, 42, 0.25) 0%, transparent 50%);
+          background:
+            radial-gradient(circle at 15% 20%, rgba(200, 138, 46, 0.18) 0%, transparent 45%),
+            radial-gradient(circle at 85% 80%, rgba(139, 87, 42, 0.25) 0%, transparent 50%);
           pointer-events: none;
         }
 
@@ -203,8 +218,9 @@ function Login() {
           background: #FFFFFF;
           padding: 40px;
           border-radius: 16px;
-          box-shadow: 0 12px 32px -8px rgba(44, 31, 29, 0.06),
-                      0 4px 12px -2px rgba(44, 31, 29, 0.03);
+          box-shadow:
+            0 12px 32px -8px rgba(44, 31, 29, 0.06),
+            0 4px 12px -2px rgba(44, 31, 29, 0.03);
           border: 1px solid #EFE8DA;
         }
 
@@ -330,9 +346,11 @@ function Login() {
           .login-panel {
             display: none;
           }
+
           .login-form-side {
             padding: 24px 16px;
           }
+
           .login-form-wrap {
             box-shadow: none;
             border: none;
@@ -350,16 +368,22 @@ function Login() {
 
         <div className="panel-headline">
           <h1>Report it once. We'll take it from there.</h1>
+
           <p>
             Submit a complaint, and CampusCare sorts, prioritizes, and routes
-            it to the right maintenance team automatically — resolving campus issues in record time.
+            it to the right maintenance team automatically — resolving campus
+            issues in record time.
           </p>
 
           <div className="speed-highlight">
             <span className="speed-icon">⚡</span>
+
             <div className="speed-text">
               <h4>Lightning-Fast Turnaround</h4>
-              <p>Automated staff allocation ensures standard campus issues are resolved within 24–48 hours.</p>
+              <p>
+                Automated staff allocation ensures standard campus issues are
+                resolved within 24–48 hours.
+              </p>
             </div>
           </div>
         </div>
@@ -377,6 +401,7 @@ function Login() {
           <form onSubmit={handleSubmit}>
             <div className="field">
               <label htmlFor="email">Email</label>
+
               <input
                 id="email"
                 type="email"
@@ -390,6 +415,7 @@ function Login() {
 
             <div className="field">
               <label htmlFor="password">Password</label>
+
               <input
                 id="password"
                 type="password"
@@ -403,14 +429,21 @@ function Login() {
 
             {error && <div className="form-error">{error}</div>}
 
-            <button type="submit" className="submit-btn" disabled={loading}>
+            <button
+              type="submit"
+              className="submit-btn"
+              disabled={loading}
+            >
               {loading ? "Signing in…" : "Sign in"}
             </button>
           </form>
 
           <p className="register-line">
             Don't have an account?{" "}
-            <span className="link" onClick={() => navigate("/register")}>
+            <span
+              className="link"
+              onClick={() => navigate("/register")}
+            >
               Register
             </span>
           </p>
