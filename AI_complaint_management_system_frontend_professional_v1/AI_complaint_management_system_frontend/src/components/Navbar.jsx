@@ -1,3 +1,4 @@
+
 import { NavLink, useNavigate } from "react-router-dom";
 import { getUser, logout } from "../utils/auth";
 
@@ -16,11 +17,13 @@ function Navbar() {
           { label: "Submit Complaint", to: "/student/submit", icon: "＋" },
           { label: "My Complaints", to: "/student/complaints", icon: "▤" },
           { label: "Notifications", to: "/student/notifications", icon: "♧" },
+          { label: "Announcements", to: "/student/announcements", icon: "▣" },
         ]
       : role === "ADMIN"
         ? [
             { label: "Dashboard", to: "/admin", icon: "⌂" },
             { label: "Manage Complaints", to: "/admin/complaints", icon: "▤" },
+            { label: "Staff Management", to: "/admin/staff", icon: "♙" },
             { label: "Announcements", to: "/admin/announcements", icon: "▣" },
           ]
         : [{ label: "Dashboard", to: "/staff", icon: "⌂" }];
@@ -34,18 +37,20 @@ function Navbar() {
     <header className="app-header">
       <style>{`
         .app-header {
-          height: 68px;
-          background: #2C1F1D; /* Warm Espresso Brown */
+          min-height: 68px;
+          background: #2C1F1D;
           color: #F8F4EB;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 0 40px;
+          gap: 12px;
+          padding: 10px 40px;
           border-bottom: 1px solid rgba(248, 244, 235, 0.12);
           position: sticky;
           top: 0;
           z-index: 1000;
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+            Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
           box-shadow: 0 4px 18px rgba(44, 31, 29, 0.15);
         }
 
@@ -55,12 +60,13 @@ function Navbar() {
           gap: 12px;
           cursor: pointer;
           user-select: none;
+          flex-shrink: 0;
         }
 
         .brand-mark {
           width: 34px;
           height: 34px;
-          background: #C88A2E; /* Warm Ghee Gold */
+          background: #C88A2E;
           color: #2C1F1D;
           border-radius: 8px;
           display: flex;
@@ -90,23 +96,26 @@ function Navbar() {
         .main-nav {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 4px;
           background: rgba(248, 244, 235, 0.05);
           padding: 6px;
           border-radius: 10px;
           border: 1px solid rgba(248, 244, 235, 0.08);
+          flex-wrap: wrap;
+          justify-content: center;
         }
 
         .nav-link {
           display: flex;
           align-items: center;
-          gap: 8px;
-          padding: 8px 16px;
+          gap: 7px;
+          padding: 8px 12px;
           border-radius: 6px;
           color: #D3C7B6;
           text-decoration: none;
-          font-size: 13.5px;
+          font-size: 13px;
           font-weight: 500;
+          white-space: nowrap;
           transition: all 0.2s ease;
         }
 
@@ -135,6 +144,7 @@ function Navbar() {
           padding: 6px 10px 6px 6px;
           border-radius: 30px;
           border: 1px solid rgba(248, 244, 235, 0.12);
+          flex-shrink: 0;
         }
 
         .avatar {
@@ -190,19 +200,46 @@ function Navbar() {
           color: #E2A855;
         }
 
-        @media (max-width: 800px) {
+        @media (max-width: 1100px) {
           .app-header {
-            padding: 0 16px;
+            padding: 10px 16px;
+            flex-wrap: wrap;
           }
-          .user-details, .brand small {
+
+          .user-details,
+          .brand small {
             display: none;
           }
+
           .main-nav {
             background: transparent;
             border: none;
           }
+
           .nav-link {
-            padding: 8px 10px;
+            padding: 8px 9px;
+          }
+        }
+
+        @media (max-width: 650px) {
+          .app-header {
+            justify-content: center;
+          }
+
+          .brand {
+            margin-right: auto;
+          }
+
+          .main-nav {
+            order: 3;
+            width: 100%;
+            overflow-x: auto;
+            flex-wrap: nowrap;
+            justify-content: flex-start;
+          }
+
+          .nav-link {
+            flex-shrink: 0;
           }
         }
       `}</style>
@@ -221,7 +258,9 @@ function Navbar() {
             key={link.to}
             to={link.to}
             end={link.to === links[0].to}
-            className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+            className={({ isActive }) =>
+              isActive ? "nav-link active" : "nav-link"
+            }
           >
             <span>{link.icon}</span>
             {link.label}
@@ -230,12 +269,21 @@ function Navbar() {
       </nav>
 
       <div className="user-menu">
-        <div className="avatar">{user.name?.charAt(0)?.toUpperCase() || "U"}</div>
+        <div className="avatar">
+          {user.name?.charAt(0)?.toUpperCase() || "U"}
+        </div>
+
         <div className="user-details">
           <strong>{user.name}</strong>
           <small>{role}</small>
         </div>
-        <button className="logout-button" onClick={handleLogout} title="Logout">
+
+        <button
+          className="logout-button"
+          onClick={handleLogout}
+          title="Logout"
+          aria-label="Logout"
+        >
           ↪
         </button>
       </div>

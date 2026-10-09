@@ -3,17 +3,59 @@ import { useNavigate } from "react-router-dom";
 import API from "../../services/api";
 import Navbar from "../../components/Navbar";
 
-const initialForm = { title: "", description: "", location: "" };
+const initialForm = {
+  title: "",
+  description: "",
+  location: "",
+};
+
+const MAX_PHOTO_SIZE = 5 * 1024 * 1024;
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 function SubmitComplaint() {
   const navigate = useNavigate();
+
   const [form, setForm] = useState(initialForm);
+  const [photo, setPhoto] = useState(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleChange = (event) => {
-    setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+    const { name, value } = event.target;
+
+    setForm((current) => ({
+      ...current,
+      [name]: value,
+    }));
+  };
+
+  const handlePhotoChange = (event) => {
+    setError("");
+    setMessage("");
+
+    const selectedFile = event.target.files?.[0];
+
+    if (!selectedFile) {
+      setPhoto(null);
+      return;
+    }
+
+    if (!ALLOWED_TYPES.includes(selectedFile.type)) {
+      setPhoto(null);
+      event.target.value = "";
+      setError("Choose a JPG, PNG, or WEBP image.");
+      return;
+    }
+
+    if (selectedFile.size > MAX_PHOTO_SIZE) {
+      setPhoto(null);
+      event.target.value = "";
+      setError("The photo must be 5 MB or smaller.");
+      return;
+    }
+
+    setPhoto(selectedFile);
   };
 
   const handleSubmit = async (event) => {
@@ -21,21 +63,77 @@ function SubmitComplaint() {
     setError("");
     setMessage("");
 
-    if (form.title.trim().length < 5) return setError("Title must contain at least 5 characters.");
-    if (form.description.trim().length < 15) return setError("Description must contain at least 15 characters.");
-    if (form.location.trim().length < 2) return setError("Please enter a valid location.");
+    if (form.title.trim().length < 5) {
+      setError("Title must contain at least 5 characters.");
+      return;
+    }
+
+    if (form.description.trim().length < 15) {
+      setError("Description must contain at least 15 characters.");
+      return;
+    }
+
+    if (form.location.trim().length < 2) {
+      setError("Please enter a valid location.");
+      return;
+    }
 
     setLoading(true);
+
     try {
       const response = await API.post("/complaints", {
         title: form.title.trim(),
         description: form.description.trim(),
         location: form.location.trim(),
       });
-      setMessage(`Complaint submitted successfully${response.data?.id ? ` · ID: ${response.data.id}` : ""}.`);
+
+      const complaint = response.data;
+      const complaintId = complaint?.id ?? complaint?.complaintId;
+
+      if (photo) {
+        if (complaintId == null) {
+          setForm(initialForm);
+          setPhoto(null);
+          setMessage(
+            "Complaint created, but its ID was not returned. The photo was not uploaded."
+          );
+          return;
+        }
+
+        const data = new FormData();
+        data.append("file", photo);
+
+        try {
+          await API.post(
+            `/complaints/${complaintId}/photo`,
+            data
+          );
+        } catch {
+          setForm(initialForm);
+          setPhoto(null);
+          setMessage(
+            `Complaint #${complaintId} was created, but the photo upload failed.`
+          );
+          return;
+        }
+      }
+
+      setMessage(
+        `Complaint submitted successfully${
+          complaintId != null ? ` · ID: ${complaintId}` : ""
+        }.`
+      );
+
       setForm(initialForm);
+      setPhoto(null);
+
+      const fileInput = document.getElementById("photo");
+      if (fileInput) fileInput.value = "";
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to submit complaint. Please try again.");
+      setError(
+        err.response?.data?.message ||
+          "Failed to submit complaint. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -44,16 +142,27 @@ function SubmitComplaint() {
   return (
     <>
       <Navbar />
-      <main className="app-page narrow-page">
+
+      <main className="app-page">
         <style>{`
           .app-page {
             width: 100%;
             min-height: calc(100vh - 68px);
-            background-color: #F8F4EB;
-            padding: 40px 48px;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #F8F4EB;
+            padding: 40px 24px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+              Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             color: #2C1F1D;
             box-sizing: border-box;
+          }
+
+          /* Align the back link and heading with the centered form */
+          .breadcrumb,
+          .page-heading {
+            width: 100%;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
           }
 
           .breadcrumb {
@@ -99,9 +208,15 @@ function SubmitComplaint() {
             font-size: 15px;
             color: #72635B;
             margin: 0;
+            line-height: 1.6;
           }
 
+          /* Center the form card horizontally */
           .form-card {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            box-sizing: border-box;
             background: #FFFFFF;
             border: 1px solid #EFE8DA;
             border-radius: 16px;
@@ -144,6 +259,7 @@ function SubmitComplaint() {
             font-size: 13.5px;
             color: #72635B;
             margin: 0;
+            line-height: 1.5;
           }
 
           form label {
@@ -158,7 +274,8 @@ function SubmitComplaint() {
             color: #B93815;
           }
 
-          form input, form textarea {
+          form input,
+          form textarea {
             width: 100%;
             background: #FAF6EE;
             border: 1px solid #EFE8DA;
@@ -172,10 +289,20 @@ function SubmitComplaint() {
             font-family: inherit;
           }
 
-          form input:focus, form textarea:focus {
+          form input:focus,
+          form textarea:focus {
             border-color: #C88A2E;
             background: #FFFFFF;
             box-shadow: 0 0 0 3px rgba(200, 138, 46, 0.15);
+          }
+
+          form input[type="file"] {
+            background: #FFFFFF;
+          }
+
+          form textarea {
+            resize: vertical;
+            min-height: 140px;
           }
 
           .field-hint {
@@ -185,11 +312,23 @@ function SubmitComplaint() {
             margin-top: 4px;
           }
 
+          .photo-preview {
+            display: block;
+            max-width: 220px;
+            max-height: 180px;
+            object-fit: contain;
+            margin-top: 12px;
+            border: 1px solid #EFE8DA;
+            border-radius: 10px;
+          }
+
           .alert {
             font-size: 14px;
             padding: 14px 18px;
             border-radius: 10px;
             margin-top: 20px;
+            overflow-wrap: anywhere;
+            line-height: 1.5;
           }
 
           .alert.error {
@@ -208,22 +347,27 @@ function SubmitComplaint() {
             display: flex;
             align-items: center;
             justify-content: flex-end;
+            flex-wrap: wrap;
             gap: 12px;
             margin-top: 32px;
             padding-top: 20px;
             border-top: 1px solid #EFE8DA;
           }
 
-          .secondary-button {
-            background: transparent;
-            border: 1px solid #E2D7C3;
-            color: #72635B;
+          .secondary-button,
+          .primary-button {
             padding: 11px 20px;
             border-radius: 10px;
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s ease;
+          }
+
+          .secondary-button {
+            background: transparent;
+            border: 1px solid #E2D7C3;
+            color: #72635B;
           }
 
           .secondary-button:hover {
@@ -236,11 +380,6 @@ function SubmitComplaint() {
             border: none;
             color: #F8F4EB;
             padding: 11px 24px;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
             box-shadow: 0 4px 12px rgba(44, 31, 29, 0.12);
           }
 
@@ -256,16 +395,29 @@ function SubmitComplaint() {
 
           @media (max-width: 600px) {
             .app-page {
-              padding: 24px 16px;
+              padding: 24px 14px;
             }
+
             .form-card {
-              padding: 20px;
+              padding: 20px 16px;
+            }
+
+            .page-heading h1 {
+              font-size: 27px;
+            }
+
+            .form-actions > button {
+              flex: 1;
             }
           }
         `}</style>
 
         <div className="breadcrumb">
-          <button className="back-link" onClick={() => navigate("/student")}>
+          <button
+            type="button"
+            className="back-link"
+            onClick={() => navigate("/student")}
+          >
             ← Dashboard
           </button>
         </div>
@@ -274,16 +426,20 @@ function SubmitComplaint() {
           <p className="eyebrow">STUDENT PORTAL</p>
           <h1>Submit a complaint</h1>
           <p className="page-subtitle">
-            Tell us what happened. Our system will classify and prioritize your complaint.
+            Tell us what happened. Our system will classify and prioritize
+            your complaint.
           </p>
         </section>
 
-        <div className="form-card professional-form">
+        <div className="form-card">
           <div className="form-intro">
             <span className="form-icon">✎</span>
             <div>
               <h2>Complaint details</h2>
-              <p>Provide accurate information so the issue can be resolved faster.</p>
+              <p>
+                Provide accurate information so the issue can be resolved
+                faster.
+              </p>
             </div>
           </div>
 
@@ -300,7 +456,9 @@ function SubmitComplaint() {
               maxLength={120}
               required
             />
-            <div className="field-hint">{form.title.length}/120 characters</div>
+            <div className="field-hint">
+              {form.title.length}/120 characters
+            </div>
 
             <label htmlFor="description">
               Description <span>*</span>
@@ -315,7 +473,9 @@ function SubmitComplaint() {
               maxLength={1000}
               required
             />
-            <div className="field-hint">{form.description.length}/1000 characters</div>
+            <div className="field-hint">
+              {form.description.length}/1000 characters
+            </div>
 
             <label htmlFor="location">
               Location <span>*</span>
@@ -330,8 +490,51 @@ function SubmitComplaint() {
               required
             />
 
-            {error && <div className="alert error">{error}</div>}
-            {message && <div className="alert success">{message}</div>}
+            <label htmlFor="photo">Attach a photo (optional)</label>
+            <input
+              id="photo"
+              name="photo"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handlePhotoChange}
+            />
+            <div className="field-hint">
+              JPG, PNG, or WEBP · Maximum 5 MB
+            </div>
+
+            {photo && (
+              <div>
+                <p>{photo.name}</p>
+                <img
+                  className="photo-preview"
+                  src={URL.createObjectURL(photo)}
+                  alt="Selected complaint"
+                />
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => {
+                    setPhoto(null);
+                    const input = document.getElementById("photo");
+                    if (input) input.value = "";
+                  }}
+                >
+                  Remove photo
+                </button>
+              </div>
+            )}
+
+            {error && (
+              <div className="alert error" role="alert">
+                {error}
+              </div>
+            )}
+
+            {message && (
+              <div className="alert success" role="status">
+                {message}
+              </div>
+            )}
 
             <div className="form-actions">
               <button
@@ -341,7 +544,12 @@ function SubmitComplaint() {
               >
                 Cancel
               </button>
-              <button type="submit" className="primary-button" disabled={loading}>
+
+              <button
+                type="submit"
+                className="primary-button"
+                disabled={loading}
+              >
                 {loading ? "Submitting..." : "Submit Complaint →"}
               </button>
             </div>

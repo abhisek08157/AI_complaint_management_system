@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+
 import API from "../../services/api";
 import { getUser } from "../../utils/auth";
 import Navbar from "../../components/Navbar";
@@ -8,37 +9,55 @@ import ComplaintCard from "../../components/ComplaintCard";
 function StudentDashboard() {
   const navigate = useNavigate();
   const user = getUser();
+
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const loadComplaints = async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await API.get("/complaints/my");
+
+      setComplaints(
+        Array.isArray(response.data) ? response.data : []
+      );
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          "Unable to load dashboard data. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadComplaints = async () => {
-      try {
-        const response = await API.get("/complaints/my");
-        setComplaints(Array.isArray(response.data) ? response.data : []);
-      } catch (err) {
-        setError(err.response?.data?.message || "Unable to load dashboard data.");
-      } finally {
-        setLoading(false);
-      }
-    };
     loadComplaints();
   }, []);
 
   const stats = useMemo(() => {
-    const count = (status) => complaints.filter((item) => item.status === status).length;
+    const count = (status) =>
+      complaints.filter(
+        (item) => item.status?.toUpperCase() === status
+      ).length;
+
     return {
       total: complaints.length,
       submitted: count("SUBMITTED"),
+      assigned: count("ASSIGNED"),
       inProgress: count("IN_PROGRESS"),
       resolved: count("RESOLVED"),
+      closed: count("CLOSED"),
     };
   }, [complaints]);
 
   return (
     <>
       <Navbar />
+
       <main className="app-page">
         <style>{`
           .app-page {
@@ -46,7 +65,8 @@ function StudentDashboard() {
             min-height: calc(100vh - 68px);
             background-color: #F8F4EB;
             padding: 40px 48px;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+              Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             color: #2C1F1D;
             box-sizing: border-box;
           }
@@ -85,6 +105,7 @@ function StudentDashboard() {
           .primary-button {
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 8px;
             background: #2C1F1D;
             color: #F8F4EB;
@@ -96,6 +117,8 @@ function StudentDashboard() {
             transition: all 0.2s ease;
             box-shadow: 0 4px 12px rgba(44, 31, 29, 0.12);
             white-space: nowrap;
+            border: none;
+            cursor: pointer;
           }
 
           .primary-button:hover {
@@ -116,7 +139,7 @@ function StudentDashboard() {
 
           .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px;
             width: 100%;
             margin-bottom: 40px;
@@ -132,6 +155,8 @@ function StudentDashboard() {
             gap: 16px;
             box-shadow: 0 8px 24px -6px rgba(44, 31, 29, 0.04);
             transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-sizing: border-box;
+            min-width: 0;
           }
 
           .stat-card.clickable {
@@ -155,10 +180,28 @@ function StudentDashboard() {
             flex-shrink: 0;
           }
 
-          .stat-icon.blue { background: #2C1F1D; color: #FAF6EE; }
-          .stat-icon.amber { background: #FDF8ED; color: #C88A2E; border: 1px solid #E2D7C3; }
-          .stat-icon.purple { background: #FAF0E6; color: #9A5B2C; border: 1px solid #EAD2C1; }
-          .stat-icon.green { background: #F0F7F4; color: #2D6A4F; border: 1px solid #C2E2D3; }
+          .stat-icon.blue {
+            background: #2C1F1D;
+            color: #FAF6EE;
+          }
+
+          .stat-icon.amber {
+            background: #FDF8ED;
+            color: #C88A2E;
+            border: 1px solid #E2D7C3;
+          }
+
+          .stat-icon.purple {
+            background: #FAF0E6;
+            color: #9A5B2C;
+            border: 1px solid #EAD2C1;
+          }
+
+          .stat-icon.green {
+            background: #F0F7F4;
+            color: #2D6A4F;
+            border: 1px solid #C2E2D3;
+          }
 
           .stat-card p {
             font-size: 12.5px;
@@ -166,7 +209,7 @@ function StudentDashboard() {
             text-transform: uppercase;
             letter-spacing: 0.04em;
             color: #72635B;
-            margin: 0 0 4px;
+            margin: 0 0 6px;
           }
 
           .stat-card h2 {
@@ -182,6 +225,7 @@ function StudentDashboard() {
             display: flex;
             align-items: flex-end;
             justify-content: space-between;
+            gap: 16px;
             margin-bottom: 20px;
             border-bottom: 1px solid #EFE8DA;
             padding-bottom: 12px;
@@ -207,6 +251,7 @@ function StudentDashboard() {
             font-size: 14px;
             font-weight: 600;
             transition: color 0.2s ease;
+            white-space: nowrap;
           }
 
           .text-link:hover {
@@ -215,7 +260,7 @@ function StudentDashboard() {
 
           .complaint-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 20px;
             width: 100%;
           }
@@ -261,9 +306,45 @@ function StudentDashboard() {
               align-items: flex-start;
             }
 
+            .welcome-row h1 {
+              font-size: 27px;
+            }
+
             .primary-button {
               width: 100%;
-              justify-content: center;
+              white-space: normal;
+            }
+
+            .section-heading {
+              align-items: flex-start;
+            }
+
+            .stats-grid {
+              grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+              gap: 12px;
+            }
+
+            .stat-card {
+              padding: 16px 12px;
+              gap: 10px;
+            }
+
+            .stat-icon {
+              width: 36px;
+              height: 36px;
+              font-size: 16px;
+            }
+
+            .stat-card h2 {
+              font-size: 26px;
+            }
+
+            .stat-card p {
+              font-size: 11px;
+            }
+
+            .complaint-grid {
+              grid-template-columns: 1fr;
             }
           }
         `}</style>
@@ -271,28 +352,51 @@ function StudentDashboard() {
         <section className="welcome-row">
           <div>
             <p className="eyebrow">STUDENT PORTAL</p>
+
             <h1>
-              Welcome back, {user.name?.split(" ")[0] || "Student"} <span>👋</span>
+              Welcome back, {user?.name?.split(" ")[0] || "Student"} 👋
             </h1>
-            <p className="page-subtitle">Report campus issues and track their resolution in one place.</p>
+
+            <p className="page-subtitle">
+              Report campus issues and track their resolution in one place.
+            </p>
           </div>
+
           <Link className="primary-button" to="/student/submit">
             ＋ New Complaint
           </Link>
         </section>
 
-        {error && <div className="alert error">{error}</div>}
+        {error && (
+          <div className="alert error" role="alert">
+            <p>{error}</p>
+            <button
+              type="button"
+              className="primary-button"
+              onClick={loadComplaints}
+              disabled={loading}
+            >
+              {loading ? "Retrying..." : "Try again"}
+            </button>
+          </div>
+        )}
 
         <section className="stats-grid student-stats">
-          {/* Clickable Card redirecting to My Complaints */}
           <div
             className="stat-card clickable"
             onClick={() => navigate("/student/complaints")}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                navigate("/student/complaints");
+              }
+            }}
+            role="button"
+            tabIndex={0}
             title="Click to view all complaints"
           >
             <span className="stat-icon blue">▤</span>
             <div>
-              <p>Total Complaints →</p>
+              <p>Total Complaints</p>
               <h2>{loading ? "—" : stats.total}</h2>
             </div>
           </div>
@@ -302,6 +406,14 @@ function StudentDashboard() {
             <div>
               <p>Submitted</p>
               <h2>{loading ? "—" : stats.submitted}</h2>
+            </div>
+          </div>
+
+          <div className="stat-card">
+            <span className="stat-icon amber">↗</span>
+            <div>
+              <p>Assigned</p>
+              <h2>{loading ? "—" : stats.assigned}</h2>
             </div>
           </div>
 
@@ -320,6 +432,14 @@ function StudentDashboard() {
               <h2>{loading ? "—" : stats.resolved}</h2>
             </div>
           </div>
+
+          <div className="stat-card">
+            <span className="stat-icon green">✓</span>
+            <div>
+              <p>Closed</p>
+              <h2>{loading ? "—" : stats.closed}</h2>
+            </div>
+          </div>
         </section>
 
         <section className="section-heading">
@@ -327,13 +447,22 @@ function StudentDashboard() {
             <h2>Recent complaints</h2>
             <p>Keep track of your latest submissions.</p>
           </div>
+
           <Link className="text-link" to="/student/complaints">
             View all →
           </Link>
         </section>
 
         {loading ? (
-          <div className="empty-state">Loading your complaints...</div>
+          <div className="empty-state" role="status">
+            Loading your complaints...
+          </div>
+        ) : error ? (
+          <div className="empty-state">
+            <div className="empty-icon">!</div>
+            <h3>Complaints could not be loaded</h3>
+            <p>Please check your connection and try again.</p>
+          </div>
         ) : complaints.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon">▤</div>
@@ -346,7 +475,11 @@ function StudentDashboard() {
         ) : (
           <div className="complaint-grid">
             {complaints.slice(0, 3).map((complaint) => (
-              <ComplaintCard key={complaint.id} complaint={complaint} compact />
+              <ComplaintCard
+                key={complaint.id}
+                complaint={complaint}
+                compact
+              />
             ))}
           </div>
         )}

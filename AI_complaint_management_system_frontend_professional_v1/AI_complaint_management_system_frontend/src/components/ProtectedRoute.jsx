@@ -4,17 +4,30 @@ import { getUser } from "../utils/auth";
 function ProtectedRoute({ children, roles, role }) {
   const user = getUser();
 
-  // Send users without a valid login token to the login page
+  // Redirect users who are not logged in
   if (!user?.token) {
     return <Navigate to="/login" replace />;
   }
 
-  // Support both the old "role" prop and the new "roles" array
+  // Support both "role" and "roles" props
   const allowedRoles = roles || (role ? [role] : null);
 
-  // Prevent users from opening dashboards they are not allowed to access
+  // Redirect users who don't have permission
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/login" replace />;
+    const dashboardRoutes = {
+      STUDENT: "/student",
+      ADMIN: "/admin",
+      STAFF: "/staff",
+      HOSTEL_WARDEN: "/warden",
+      SECURITY: "/security",
+    };
+
+    return (
+      <Navigate
+        to={dashboardRoutes[user.role] || "/login"}
+        replace
+      />
+    );
   }
 
   return children;

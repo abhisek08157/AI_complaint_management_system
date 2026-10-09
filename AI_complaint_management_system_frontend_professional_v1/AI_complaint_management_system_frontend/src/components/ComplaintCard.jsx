@@ -1,20 +1,39 @@
+
 import StatusBadge from "./StatusBadge";
 
-function ComplaintCard({ complaint, compact = false }) {
+function ComplaintCard({ complaint = {}, compact = false }) {
+  const complaintId = complaint.id ?? complaint.complaintId ?? "N/A";
+
+  const priority = String(complaint.priority || "MEDIUM").toUpperCase();
+  const priorityClass = ["LOW", "MEDIUM", "HIGH", "URGENT"].includes(priority)
+    ? priority.toLowerCase()
+    : "medium";
+
+  const assignedStaff =
+    typeof complaint.assignedStaff === "object"
+      ? complaint.assignedStaff?.name
+      : complaint.assignedStaff;
+
   return (
     <article className={`complaint-card ${compact ? "compact" : ""}`}>
       <style>{`
         .complaint-card {
+          width: 100%;
+          min-width: 0;
+          height: 100%;
+          box-sizing: border-box;
           background: #FFFFFF;
           border: 1px solid #EFE8DA;
           border-radius: 14px;
           padding: 24px;
           box-shadow: 0 6px 20px -4px rgba(44, 31, 29, 0.04);
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
+          transition: transform 0.2s ease, box-shadow 0.2s ease,
+            border-color 0.2s ease;
           display: flex;
           flex-direction: column;
           gap: 16px;
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+            Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
           color: #2C1F1D;
         }
 
@@ -25,6 +44,7 @@ function ComplaintCard({ complaint, compact = false }) {
         }
 
         .complaint-card.compact {
+          height: auto;
           padding: 18px;
           gap: 12px;
         }
@@ -33,7 +53,13 @@ function ComplaintCard({ complaint, compact = false }) {
           display: flex;
           align-items: flex-start;
           justify-content: space-between;
-          gap: 16px;
+          gap: 12px;
+          min-width: 0;
+        }
+
+        .complaint-heading {
+          flex: 1;
+          min-width: 0;
         }
 
         .complaint-id {
@@ -43,7 +69,7 @@ function ComplaintCard({ complaint, compact = false }) {
           letter-spacing: 0.06em;
           color: #C88A2E;
           display: block;
-          margin-bottom: 4px;
+          margin-bottom: 5px;
         }
 
         .complaint-card-top h3 {
@@ -52,47 +78,58 @@ function ComplaintCard({ complaint, compact = false }) {
           font-weight: 600;
           color: #2C1F1D;
           margin: 0;
-          line-height: 1.3;
+          line-height: 1.35;
+          overflow-wrap: anywhere;
         }
 
         .complaint-card.compact .complaint-card-top h3 {
           font-size: 17px;
         }
 
+        .complaint-card-status {
+          flex-shrink: 0;
+          max-width: 45%;
+        }
+
         .complaint-description {
           font-size: 14.5px;
           color: #584A45;
-          line-height: 1.5;
+          line-height: 1.6;
           margin: 0;
+          overflow-wrap: anywhere;
+          white-space: pre-wrap;
         }
 
         .complaint-meta {
           display: flex;
           flex-wrap: wrap;
           align-items: center;
-          gap: 16px;
+          gap: 10px 16px;
           font-size: 13px;
           color: #72635B;
-          padding-top: 12px;
+          padding-top: 14px;
           border-top: 1px dashed #EFE8DA;
         }
 
         .complaint-meta span {
-          display: flex;
-          align-items: center;
+          display: inline-flex;
+          align-items: flex-start;
           gap: 6px;
+          min-width: 0;
+          overflow-wrap: anywhere;
         }
 
         .priority-text {
           font-weight: 600;
         }
 
-        .priority-high, .priority-urgent {
+        .priority-high,
+        .priority-urgent {
           color: #B93815;
         }
 
         .priority-medium {
-          color: #C88A2E;
+          color: #A66B14;
         }
 
         .priority-low {
@@ -108,49 +145,97 @@ function ComplaintCard({ complaint, compact = false }) {
           flex-direction: column;
           gap: 10px;
           font-size: 13.5px;
-          margin-top: 4px;
+          margin-top: auto;
+          min-width: 0;
         }
 
         .complaint-extra p {
           margin: 0;
           color: #433532;
-          line-height: 1.45;
+          line-height: 1.55;
+          overflow-wrap: anywhere;
         }
 
         .complaint-extra strong {
           color: #2C1F1D;
           font-weight: 600;
         }
+
+        @media (max-width: 600px) {
+          .complaint-card {
+            padding: 20px;
+            gap: 14px;
+          }
+
+          .complaint-card-top h3 {
+            font-size: 18px;
+          }
+
+          .complaint-meta {
+            gap: 10px 14px;
+          }
+
+          .complaint-extra {
+            padding: 12px;
+          }
+        }
       `}</style>
 
       <div className="complaint-card-top">
-        <div>
-          <span className="complaint-id">Complaint #{complaint.id}</span>
+        <div className="complaint-heading">
+          <span className="complaint-id">
+            Complaint #{complaintId}
+          </span>
+
           <h3>{complaint.title || "Untitled complaint"}</h3>
         </div>
-        <StatusBadge status={complaint.status} />
+
+        <div className="complaint-card-status">
+          <StatusBadge status={complaint.status || "SUBMITTED"} />
+        </div>
       </div>
 
-      <p className="complaint-description">{complaint.description || "No description provided."}</p>
+      <p className="complaint-description">
+        {complaint.description || "No description provided."}
+      </p>
 
       <div className="complaint-meta">
-        <span>⌖ {complaint.location || "Location not specified"}</span>
-        <span>◈ {complaint.category || "OTHER"}</span>
-        <span className={`priority-text priority-${String(complaint.priority || "MEDIUM").toLowerCase()}`}>
-          ● {complaint.priority || "MEDIUM"} priority
+        <span>
+          <span aria-hidden="true">⌖</span>
+          {complaint.location || "Location not specified"}
+        </span>
+
+        <span>
+          <span aria-hidden="true">◈</span>
+          {complaint.category || "OTHER"}
+        </span>
+
+        <span className={`priority-text priority-${priorityClass}`}>
+          <span aria-hidden="true">●</span>
+          {priority} priority
         </span>
       </div>
 
       {!compact && (
         <div className="complaint-extra">
           {complaint.summary && (
-            <p><strong>AI Summary:</strong> {complaint.summary}</p>
+            <p>
+              <strong>AI Summary:</strong> {complaint.summary}
+            </p>
           )}
-          {complaint.assignedStaff && (
-            <p><strong>Assigned Staff:</strong> {complaint.assignedStaff}</p>
+
+          {assignedStaff && (
+            <p>
+              <strong>Assigned Staff:</strong>{" "}
+              {assignedStaff}
+            </p>
           )}
+
           {complaint.resolution && (
-            <p><strong>Resolution:</strong> {complaint.resolution}</p>
+            <p>
+              <strong>Resolution:</strong>{" "}
+              {complaint.resolution}
+            </p>
           )}
         </div>
       )}
