@@ -1,4 +1,5 @@
 package com.abhisek.management.service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.abhisek.management.dto.AnnouncementCreateRequest;
 import com.abhisek.management.dto.AnnouncementResponse;
@@ -106,6 +107,8 @@ public class AnnouncementService {
     // ADMIN
     // =========================
 
+    @Transactional
+    (readOnly = true)
     public List<AnnouncementResponse> getAllAnnouncements() {
 
         User currentUser = currentUserService.getCurrentUser();
