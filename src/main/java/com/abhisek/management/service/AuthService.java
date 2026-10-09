@@ -1,3 +1,4 @@
+
 package com.abhisek.management.service;
 
 import com.abhisek.management.dto.LoginRequest;
@@ -15,9 +16,7 @@ import org.springframework.stereotype.Service;
 public class AuthService {
 
     private final UserRepository userRepository;
-
     private final PasswordEncoder passwordEncoder;
-
     private final JwtService jwtService;
 
     public AuthService(
@@ -30,12 +29,10 @@ public class AuthService {
         this.jwtService = jwtService;
     }
 
-    public LoginResponse register(
-            RegisterRequest request) {
+    public LoginResponse register(RegisterRequest request) {
 
         if (request.getName() == null ||
                 request.getName().isBlank()) {
-
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
                     "Name is required"
@@ -44,7 +41,6 @@ public class AuthService {
 
         if (request.getEmail() == null ||
                 request.getEmail().isBlank()) {
-
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
                     "Email is required"
@@ -53,7 +49,6 @@ public class AuthService {
 
         if (request.getPassword() == null ||
                 request.getPassword().isBlank()) {
-
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
                     "Password is required"
@@ -61,51 +56,69 @@ public class AuthService {
         }
 
         if (request.getPassword().length() < 6) {
-
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
                     "Password must contain at least 6 characters"
             );
         }
 
-        String email =
-                request.getEmail()
-                        .trim()
-                        .toLowerCase();
+        String email = request.getEmail()
+                .trim()
+                .toLowerCase();
 
         if (userRepository.existsByEmail(email)) {
-
             throw new ApiException(
                     HttpStatus.CONFLICT,
                     "Email is already registered"
             );
         }
 
-        /*
-         * Public registration creates STUDENT accounts only.
-         *
-         * ADMIN and STAFF accounts will be created
-         * through protected administrative operations.
-         */
+        // Read the selected role from the registration request.
+        String role = request.getRole();
+
+        if (role == null || role.isBlank()) {
+            role = "STUDENT";
+        } else {
+            role = role.trim().toUpperCase();
+        }
+
+        // Never allow public registration as ADMIN.
+        if (!role.equals("STUDENT") && !role.equals("STAFF")) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Only STUDENT and STAFF registration is allowed"
+            );
+        }
+
+        // Specialization is required for staff accounts.
+        String specialization = null;
+
+        if (role.equals("STAFF")) {
+            if (request.getSpecialization() == null ||
+                    request.getSpecialization().isBlank()) {
+                throw new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "Specialization is required for staff"
+                );
+            }
+
+            specialization = request.getSpecialization().trim();
+        }
 
         User user = new User(
                 request.getName().trim(),
                 email,
-                passwordEncoder.encode(
-                        request.getPassword()
-                ),
-                "STUDENT",
-                null
+                passwordEncoder.encode(request.getPassword()),
+                role,
+                specialization
         );
 
-        User saved =
-                userRepository.save(user);
+        User saved = userRepository.save(user);
 
-        String token =
-                jwtService.generateToken(
-                        saved.getEmail(),
-                        saved.getRole()
-                );
+        String token = jwtService.generateToken(
+                saved.getEmail(),
+                saved.getRole()
+        );
 
         return new LoginResponse(
                 saved.getId(),
@@ -117,8 +130,7 @@ public class AuthService {
         );
     }
 
-    public LoginResponse login(
-            LoginRequest request) {
+    public LoginResponse login(LoginRequest request) {
 
         if (request.getEmail() == null ||
                 request.getEmail().isBlank() ||
@@ -131,19 +143,17 @@ public class AuthService {
             );
         }
 
-        String email =
-                request.getEmail()
-                        .trim()
-                        .toLowerCase();
+        String email = request.getEmail()
+                .trim()
+                .toLowerCase();
 
-        User user =
-                userRepository.findByEmail(email)
-                        .orElseThrow(() ->
-                                new ApiException(
-                                        HttpStatus.UNAUTHORIZED,
-                                        "Invalid email or password"
-                                )
-                        );
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new ApiException(
+                                HttpStatus.UNAUTHORIZED,
+                                "Invalid email or password"
+                        )
+                );
 
         if (!passwordEncoder.matches(
                 request.getPassword(),
@@ -155,11 +165,10 @@ public class AuthService {
             );
         }
 
-        String token =
-                jwtService.generateToken(
-                        user.getEmail(),
-                        user.getRole()
-                );
+        String token = jwtService.generateToken(
+                user.getEmail(),
+                user.getRole()
+        );
 
         return new LoginResponse(
                 user.getId(),

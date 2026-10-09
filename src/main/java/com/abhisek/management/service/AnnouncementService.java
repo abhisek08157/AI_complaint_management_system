@@ -1,5 +1,4 @@
 package com.abhisek.management.service;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.abhisek.management.dto.AnnouncementCreateRequest;
 import com.abhisek.management.dto.AnnouncementResponse;
@@ -8,8 +7,10 @@ import com.abhisek.management.entity.Announcement;
 import com.abhisek.management.entity.User;
 import com.abhisek.management.exception.ApiException;
 import com.abhisek.management.repository.AnnouncementRepository;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -32,20 +33,22 @@ public class AnnouncementService {
     // CREATE ANNOUNCEMENT
     // =========================
 
+    @Transactional
     public AnnouncementResponse createAnnouncement(
             AnnouncementCreateRequest request) {
 
         User currentUser = currentUserService.getCurrentUser();
 
         validateCreatorRole(currentUser);
-
         validateCreateRequest(request);
 
         Announcement announcement = new Announcement();
 
         announcement.setTitle(request.getTitle().trim());
         announcement.setContent(request.getContent().trim());
-        announcement.setCategory(request.getCategory().trim().toUpperCase());
+        announcement.setCategory(
+                request.getCategory().trim().toUpperCase()
+        );
         announcement.setTargetAudience(
                 request.getTargetAudience().trim().toUpperCase()
         );
@@ -57,7 +60,6 @@ public class AnnouncementService {
         }
 
         status = status.trim().toUpperCase();
-
         validateStatus(status);
 
         announcement.setStatus(status);
@@ -66,6 +68,7 @@ public class AnnouncementService {
         announcement.setCreatedBy(currentUser);
 
         validateDates(announcement);
+
         if ("PUBLISHED".equals(status)
                 && announcement.getPublishAt() != null
                 && !announcement.getPublishAt().isAfter(LocalDateTime.now())) {
@@ -82,33 +85,29 @@ public class AnnouncementService {
     // GET ALL PUBLISHED
     // =========================
 
+    @Transactional(readOnly = true)
     public List<AnnouncementResponse> getPublishedAnnouncements() {
 
-    	
-    	    User currentUser = currentUserService.getCurrentUser();
+        User currentUser = currentUserService.getCurrentUser();
 
-    	    List<Announcement> announcements =
-    	            announcementRepository
-    	                    .findByStatusOrderByCreatedAtDesc("PUBLISHED");
+        List<Announcement> announcements =
+                announcementRepository
+                        .findByStatusOrderByCreatedAtDesc("PUBLISHED");
 
-    	    return announcements.stream()
-    	            .filter(this::isVisible)
-    	            .filter(announcement -> isAudienceAllowed(
-    	                    announcement,
-    	                    currentUser
-    	            ))
-    	            .map(AnnouncementResponse::new)
-    	            .toList();
-    	}
-    
+        return announcements.stream()
+                .filter(this::isVisible)
+                .filter(announcement ->
+                        isAudienceAllowed(announcement, currentUser))
+                .map(AnnouncementResponse::new)
+                .toList();
+    }
 
     // =========================
-    // GET ALL
+    // GET ALL ANNOUNCEMENTS
     // ADMIN
     // =========================
 
-    @Transactional
-    (readOnly = true)
+    @Transactional(readOnly = true)
     public List<AnnouncementResponse> getAllAnnouncements() {
 
         User currentUser = currentUserService.getCurrentUser();
@@ -131,6 +130,7 @@ public class AnnouncementService {
     // GET MY ANNOUNCEMENTS
     // =========================
 
+    @Transactional(readOnly = true)
     public List<AnnouncementResponse> getMyAnnouncements() {
 
         User currentUser = currentUserService.getCurrentUser();
@@ -143,34 +143,34 @@ public class AnnouncementService {
     }
 
     // =========================
-    // GET BY ID
+    // GET ANNOUNCEMENT BY ID
     // =========================
 
+    @Transactional(readOnly = true)
     public AnnouncementResponse getAnnouncementById(Long id) {
 
         User currentUser = currentUserService.getCurrentUser();
 
         Announcement announcement = announcementRepository
-                .findById(id)
+                .findByIdWithCreator(id)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
                         "Announcement not found"
                 ));
 
-        /*
-         * Admin can view everything.
-         * Creators can view their own announcements.
-         * Other users can view only published announcements
-         * that are currently visible to them.
-         */
+        // Admin can view every announcement.
         if (isAdmin(currentUser)) {
             return new AnnouncementResponse(announcement);
         }
 
-        if (announcement.getCreatedBy().getId().equals(currentUser.getId())) {
+        // Creators can view their own announcements.
+        if (announcement.getCreatedBy().getId()
+                .equals(currentUser.getId())) {
             return new AnnouncementResponse(announcement);
         }
 
+        // Other users can view only published announcements
+        // that are visible and allowed for their role.
         if (!"PUBLISHED".equals(announcement.getStatus())
                 || !isVisible(announcement)
                 || !isAudienceAllowed(announcement, currentUser)) {
@@ -179,24 +179,25 @@ public class AnnouncementService {
                     HttpStatus.FORBIDDEN,
                     "You are not allowed to view this announcement"
             );
-        
         }
 
         return new AnnouncementResponse(announcement);
     }
 
     // =========================
-    // UPDATE
+    // UPDATE ANNOUNCEMENT
     // =========================
 
+    @Transactional
     public AnnouncementResponse updateAnnouncement(
             Long id,
             AnnouncementUpdateRequest request) {
 
         User currentUser = currentUserService.getCurrentUser();
 
+        // Fetch the announcement together with its creator.
         Announcement announcement = announcementRepository
-                .findById(id)
+                .findByIdWithCreator(id)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
                         "Announcement not found"
@@ -227,19 +228,19 @@ public class AnnouncementService {
         if (request.getTargetAudience() != null
                 && !request.getTargetAudience().isBlank()) {
 
-            announcement.setTargetAudience(
-                    request.getTargetAudience().trim().toUpperCase()
-            );
+            String audience =
+                    request.getTargetAudience().trim().toUpperCase();
+
+            validateTargetAudience(audience);
+            announcement.setTargetAudience(audience);
         }
 
         if (request.getStatus() != null
                 && !request.getStatus().isBlank()) {
 
-            String status =
-                    request.getStatus().trim().toUpperCase();
+            String status = request.getStatus().trim().toUpperCase();
 
             validateStatus(status);
-
             announcement.setStatus(status);
 
             if ("PUBLISHED".equals(status)
@@ -259,22 +260,22 @@ public class AnnouncementService {
 
         validateDates(announcement);
 
-        Announcement updated =
-                announcementRepository.save(announcement);
+        Announcement updated = announcementRepository.save(announcement);
 
         return new AnnouncementResponse(updated);
     }
 
     // =========================
-    // DELETE
+    // DELETE ANNOUNCEMENT
     // =========================
 
+    @Transactional
     public void deleteAnnouncement(Long id) {
 
         User currentUser = currentUserService.getCurrentUser();
 
         Announcement announcement = announcementRepository
-                .findById(id)
+                .findByIdWithCreator(id)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
                         "Announcement not found"
@@ -286,7 +287,7 @@ public class AnnouncementService {
     }
 
     // =========================
-    // VALIDATIONS
+    // CREATOR ROLE VALIDATION
     // =========================
 
     private void validateCreatorRole(User user) {
@@ -304,6 +305,10 @@ public class AnnouncementService {
         }
     }
 
+    // =========================
+    // MODIFICATION PERMISSION
+    // =========================
+
     private void validateModificationPermission(
             User currentUser,
             Announcement announcement) {
@@ -312,13 +317,11 @@ public class AnnouncementService {
             return;
         }
 
-        boolean isCreator =
-                announcement.getCreatedBy()
-                        .getId()
-                        .equals(currentUser.getId());
+        boolean isCreator = announcement.getCreatedBy()
+                .getId()
+                .equals(currentUser.getId());
 
         if (!isCreator) {
-
             throw new ApiException(
                     HttpStatus.FORBIDDEN,
                     "You can only modify your own announcements"
@@ -331,6 +334,10 @@ public class AnnouncementService {
     private boolean isAdmin(User user) {
         return "ADMIN".equals(user.getRole());
     }
+
+    // =========================
+    // CREATE REQUEST VALIDATION
+    // =========================
 
     private void validateCreateRequest(
             AnnouncementCreateRequest request) {
@@ -376,6 +383,10 @@ public class AnnouncementService {
         );
     }
 
+    // =========================
+    // TARGET AUDIENCE VALIDATION
+    // =========================
+
     private void validateTargetAudience(String targetAudience) {
 
         if (!targetAudience.equals("ALL")
@@ -390,6 +401,10 @@ public class AnnouncementService {
         }
     }
 
+    // =========================
+    // STATUS VALIDATION
+    // =========================
+
     private void validateStatus(String status) {
 
         if (!status.equals("DRAFT")
@@ -403,13 +418,14 @@ public class AnnouncementService {
         }
     }
 
+    // =========================
+    // DATE VALIDATION
+    // =========================
+
     private void validateDates(Announcement announcement) {
 
-        LocalDateTime publishAt =
-                announcement.getPublishAt();
-
-        LocalDateTime expiresAt =
-                announcement.getExpiresAt();
+        LocalDateTime publishAt = announcement.getPublishAt();
+        LocalDateTime expiresAt = announcement.getExpiresAt();
 
         if (publishAt != null
                 && expiresAt != null
@@ -421,7 +437,6 @@ public class AnnouncementService {
             );
         }
     }
-    
 
     // =========================
     // VISIBILITY
@@ -437,18 +452,21 @@ public class AnnouncementService {
 
         if (announcement.getPublishAt() != null
                 && now.isBefore(announcement.getPublishAt())) {
-
             return false;
         }
 
         if (announcement.getExpiresAt() != null
                 && now.isAfter(announcement.getExpiresAt())) {
-
             return false;
         }
 
         return true;
     }
+
+    // =========================
+    // AUDIENCE ACCESS
+    // =========================
+
     private boolean isAudienceAllowed(
             Announcement announcement,
             User currentUser) {

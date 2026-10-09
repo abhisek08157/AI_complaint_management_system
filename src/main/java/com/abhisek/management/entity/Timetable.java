@@ -1,9 +1,17 @@
 
 package com.abhisek.management.entity;
 
-import jakarta.persistence.*;
-import java.time.LocalTime;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Entity
 @Table(name = "timetables")
@@ -46,6 +54,9 @@ public class Timetable {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
+    public Timetable() {
+    }
+
     @PrePersist
     protected void onCreate() {
         LocalDateTime now = LocalDateTime.now();
@@ -56,9 +67,6 @@ public class Timetable {
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
-    }
-
-    public Timetable() {
     }
 
     public Long getId() {

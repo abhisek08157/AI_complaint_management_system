@@ -1,0 +1,249 @@
+﻿+-- .mvn
+|   \-- wrapper
+|       \-- maven-wrapper.properties
++-- .settings
+|   +-- org.eclipse.core.resources.prefs
+|   +-- org.eclipse.jdt.apt.core.prefs
+|   +-- org.eclipse.jdt.core.prefs
+|   +-- org.eclipse.m2e.core.prefs
+|   \-- org.springframework.ide.eclipse.prefs
++-- .vscode
+|   \-- settings.json
++-- AI_complaint_management_system_frontend_professional_v1
+|   +-- AI_complaint_management_system_frontend
+|   |   +-- public
+|   |   |   +-- favicon.svg
+|   |   |   \-- icons.svg
+|   |   +-- src
+|   |   |   +-- components
+|   |   |   |   +-- ComplaintCard.jsx
+|   |   |   |   +-- Navbar.jsx
+|   |   |   |   +-- ProtectedRoute.jsx
+|   |   |   |   \-- StatusBadge.jsx
+|   |   |   +-- pages
+|   |   |   |   +-- admin
+|   |   |   |   |   +-- AdminAnalytics.jsx
+|   |   |   |   |   +-- AdminDashboard.jsx
+|   |   |   |   |   +-- ManageAnnouncements.jsx
+|   |   |   |   |   +-- ManageComplaints.jsx
+|   |   |   |   |   \-- ManageStaff.jsx
+|   |   |   |   +-- security
+|   |   |   |   |   \-- SecurityDashboard.jsx
+|   |   |   |   +-- staff
+|   |   |   |   |   \-- StaffDashboard.jsx
+|   |   |   |   +-- student
+|   |   |   |   |   +-- Announcements.jsx
+|   |   |   |   |   +-- MyComplaints.jsx
+|   |   |   |   |   +-- Notifications.jsx
+|   |   |   |   |   +-- StudentDashboard.jsx
+|   |   |   |   |   +-- StudentFees.jsx
+|   |   |   |   |   +-- StudentMessMenu.jsx
+|   |   |   |   |   +-- StudentTimetable.jsx
+|   |   |   |   |   \-- SubmitComplaint.jsx
+|   |   |   |   +-- warden
+|   |   |   |   |   \-- WardenDashboard.jsx
+|   |   |   |   +-- login.jsx
+|   |   |   |   \-- Register.jsx
+|   |   |   +-- services
+|   |   |   |   \-- api.js
+|   |   |   +-- utils
+|   |   |   |   \-- auth.js
+|   |   |   +-- App.css
+|   |   |   +-- App.jsx
+|   |   |   +-- index.css
+|   |   |   \-- main.jsx
+|   |   +-- .gitignore
+|   |   +-- _files.txt
+|   |   +-- eslint.config.js
+|   |   +-- files_list.txt
+|   |   +-- index.html
+|   |   +-- listing.txt
+|   |   +-- out.txt
+|   |   +-- package.json
+|   |   +-- package-lock.json
+|   |   +-- README.md
+|   |   +-- src_listing.txt
+|   |   \-- vite.config.js
+|   \-- ai-service
+|       +-- app
+|       |   +-- __pycache__
+|       |   |   \-- main.cpython-313.pyc
+|       |   +-- schemas
+|       |   |   +-- __pycache__
+|       |   |   |   +-- __init__.cpython-313.pyc
+|       |   |   |   \-- complaint.cpython-313.pyc
+|       |   |   +-- __init__.py
+|       |   |   \-- complaint.py
+|       |   +-- services
+|       |   |   +-- __pycache__
+|       |   |   |   +-- __init__.cpython-313.pyc
+|       |   |   |   \-- ai_service.cpython-313.pyc
+|       |   |   +-- __init__.py
+|       |   |   \-- ai_service.py
+|       |   \-- main.py
+|       +-- .gitignore
+|       \-- requirements.txt
++-- ai-service
+|   +-- app
+|   |   +-- __pycache__
+|   |   |   \-- main.cpython-313.pyc
+|   |   +-- schemas
+|   |   |   \-- __pycache__
+|   |   |       +-- __init__.cpython-313.pyc
+|   |   |       \-- complaint.cpython-313.pyc
+|   |   \-- services
+|   |       \-- __pycache__
+|   |           +-- __init__.cpython-313.pyc
+|   |           \-- ai_service.cpython-313.pyc
+|   \-- .env
++-- src
+|   +-- main
+|   |   +-- java
+|   |   |   \-- com
+|   |   |       \-- abhisek
+|   |   |           \-- management
+|   |   |               +-- config
+|   |   |               |   +-- DataInitializer.java
+|   |   |               |   +-- JwtAuthenticationFilter.java
+|   |   |               |   +-- SchedulingConfig.java
+|   |   |               |   +-- SecurityConfig.java
+|   |   |               |   \-- WebConfig.java
+|   |   |               +-- controller
+|   |   |               |   +-- AdminController.java
+|   |   |               |   +-- AnalyticsController.java
+|   |   |               |   +-- AnnouncementController.java
+|   |   |               |   +-- AttendanceController.java
+|   |   |               |   +-- AuthController.java
+|   |   |               |   +-- CampusRequestController.java
+|   |   |               |   +-- ComplaintController.java
+|   |   |               |   +-- FeePaymentController.java
+|   |   |               |   +-- FeeRecordController.java
+|   |   |               |   +-- GatePassController.java
+|   |   |               |   +-- HealthController.java
+|   |   |               |   +-- MessFeedbackController.java
+|   |   |               |   +-- MessMenuController.java
+|   |   |               |   +-- NotificationController.java
+|   |   |               |   +-- SecurityDashboardController.java
+|   |   |               |   +-- StaffController.java
+|   |   |               |   +-- StaffDashboardController.java
+|   |   |               |   +-- StudentDashboardController.java
+|   |   |               |   +-- TimetableController.java
+|   |   |               |   \-- WardenDashboardController.java
+|   |   |               +-- dto
+|   |   |               |   +-- AiAnalysisResult.java
+|   |   |               |   +-- AnalyticsDashboardResponse.java
+|   |   |               |   +-- AnnouncementCreateRequest.java
+|   |   |               |   +-- AnnouncementResponse.java
+|   |   |               |   +-- AnnouncementUpdateRequest.java
+|   |   |               |   +-- AssignRequest.java
+|   |   |               |   +-- AttendanceRequest.java
+|   |   |               |   +-- AttendanceResponse.java
+|   |   |               |   +-- CampusRequestCreate.java
+|   |   |               |   +-- CampusRequestResponse.java
+|   |   |               |   +-- CampusRequestUpdate.java
+|   |   |               |   +-- ComplaintRequest.java
+|   |   |               |   +-- ComplaintResponse.java
+|   |   |               |   +-- DashboardResponse.java
+|   |   |               |   +-- DuplicateAnalysisResult.java
+|   |   |               |   +-- FeePaymentRequest.java
+|   |   |               |   +-- FeePaymentResponse.java
+|   |   |               |   +-- FeeRecordRequest.java
+|   |   |               |   +-- FeeRecordResponse.java
+|   |   |               |   +-- GatePassCreateRequest.java
+|   |   |               |   +-- GatePassResponse.java
+|   |   |               |   +-- GatePassStatusRequest.java
+|   |   |               |   +-- GatePassVerificationResponse.java
+|   |   |               |   +-- GatePassVerifyRequest.java
+|   |   |               |   +-- LoginRequest.java
+|   |   |               |   +-- LoginResponse.java
+|   |   |               |   +-- MessFeedbackRequest.java
+|   |   |               |   +-- MessFeedbackResponse.java
+|   |   |               |   +-- MessMenuRequest.java
+|   |   |               |   +-- MessMenuResponse.java
+|   |   |               |   +-- NotificationResponse.java
+|   |   |               |   +-- RecurringAnalysisResult.java
+|   |   |               |   +-- RegisterRequest.java
+|   |   |               |   +-- ResolutionConfirmationRequest.java
+|   |   |               |   +-- SecurityDashboardResponse.java
+|   |   |               |   +-- StaffDashboardResponse.java
+|   |   |               |   +-- StatusUpdateRequest.java
+|   |   |               |   +-- StudentDashboardResponse.java
+|   |   |               |   +-- TimetableRequest.java
+|   |   |               |   +-- TimetableResponse.java
+|   |   |               |   +-- UserResponse.java
+|   |   |               |   \-- WardenDashboardResponse.java
+|   |   |               +-- entity
+|   |   |               |   +-- Announcement.java
+|   |   |               |   +-- Attendance.java
+|   |   |               |   +-- CampusRequest.java
+|   |   |               |   +-- Complaint.java
+|   |   |               |   +-- FeePayment.java
+|   |   |               |   +-- FeeRecord.java
+|   |   |               |   +-- GatePass.java
+|   |   |               |   +-- GatePassLog.java
+|   |   |               |   +-- MessFeedback.java
+|   |   |               |   +-- MessMenu.java
+|   |   |               |   +-- Notification.java
+|   |   |               |   +-- Timetable.java
+|   |   |               |   \-- User.java
+|   |   |               +-- exception
+|   |   |               |   +-- ApiException.java
+|   |   |               |   \-- GlobalExceptionHandler.java
+|   |   |               +-- repository
+|   |   |               |   +-- AnnouncementRepository.java
+|   |   |               |   +-- AttendanceRepository.java
+|   |   |               |   +-- CampusRequestRepository.java
+|   |   |               |   +-- ComplaintRepository.java
+|   |   |               |   +-- FeePaymentRepository.java
+|   |   |               |   +-- FeeRecordRepository.java
+|   |   |               |   +-- GatePassLogRepository.java
+|   |   |               |   +-- GatePassRepository.java
+|   |   |               |   +-- MessFeedbackRepository.java
+|   |   |               |   +-- MessMenuRepository.java
+|   |   |               |   +-- NotificationRepository.java
+|   |   |               |   +-- TimetableRepository.java
+|   |   |               |   \-- UserRepository.java
+|   |   |               +-- service
+|   |   |               |   +-- AdminService.java
+|   |   |               |   +-- AiService.java
+|   |   |               |   +-- AnalyticsService.java
+|   |   |               |   +-- AnnouncementScheduler.java
+|   |   |               |   +-- AnnouncementService.java
+|   |   |               |   +-- AttendanceService.java
+|   |   |               |   +-- AuthService.java
+|   |   |               |   +-- CampusRequestService.java
+|   |   |               |   +-- CertificateService.java
+|   |   |               |   +-- Complaintservice.java
+|   |   |               |   +-- CurrentUserService.java
+|   |   |               |   +-- CustomUserDetailsService.java
+|   |   |               |   +-- FeePaymentService.java
+|   |   |               |   +-- FeeRecordService.java
+|   |   |               |   +-- GatePassService.java
+|   |   |               |   +-- JwtService.java
+|   |   |               |   +-- MessFeedbackService.java
+|   |   |               |   +-- MessMenuService.java
+|   |   |               |   +-- NotificationService.java
+|   |   |               |   +-- SecurityDashboardService.java
+|   |   |               |   +-- StaffDashboardService.java
+|   |   |               |   +-- StudentDashboardService.java
+|   |   |               |   +-- TimetableService.java
+|   |   |               |   \-- WardenDashboardService.java
+|   |   |               \-- AiCampusComplaintSystemApplication.java
+|   |   \-- resources
+|   |       \-- application.properties
+|   \-- test
+|       \-- java
+|           \-- com
+|               \-- abhisek
+|                   \-- management
+|                       \-- AiCampusComplaintSystemApplicationTests.java
++-- .classpath
++-- .env
++-- .gitattributes
++-- .gitignore
++-- .project
++-- mvnw
++-- mvnw.cmd
++-- pom.xml
++-- project-tree.txt
+\-- README.md

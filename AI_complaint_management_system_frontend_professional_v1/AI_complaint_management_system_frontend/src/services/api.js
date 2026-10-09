@@ -1,11 +1,9 @@
+
 import axios from "axios";
 import { getToken, logout } from "../utils/auth";
 
 const API = axios.create({
   baseURL: "http://localhost:8080/api",
-  headers: {
-    "Content-Type": "application/json",
-  },
 });
 
 // Automatically attach the token to API requests
@@ -15,6 +13,14 @@ API.interceptors.request.use(
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    // Let Axios/browser set the correct Content-Type.
+    // FormData needs multipart/form-data with a boundary.
+    if (config.data instanceof FormData) {
+      delete config.headers["Content-Type"];
+    } else if (config.data != null) {
+      config.headers["Content-Type"] = "application/json";
     }
 
     return config;
@@ -35,7 +41,6 @@ API.interceptors.response.use(
     if (status === 401 && !isAuthRequest) {
       logout();
 
-      // Redirect only if we are not already on the login page
       if (window.location.pathname !== "/login") {
         window.location.href = "/login";
       }

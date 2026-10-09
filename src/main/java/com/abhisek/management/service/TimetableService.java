@@ -12,7 +12,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalTime;
 import java.util.List;
 import java.util.Locale;
 
@@ -29,6 +28,7 @@ public class TimetableService {
         this.currentUserService = currentUserService;
     }
 
+    // Admin creates a timetable entry.
     @Transactional
     public TimetableResponse createTimetable(TimetableRequest request) {
 
@@ -40,11 +40,12 @@ public class TimetableService {
 
         checkConflicts(timetable, null);
 
-        return new TimetableResponse(
-                timetableRepository.save(timetable)
-        );
+        Timetable savedTimetable = timetableRepository.save(timetable);
+
+        return new TimetableResponse(savedTimetable);
     }
 
+    // Admin updates an existing timetable entry.
     @Transactional
     public TimetableResponse updateTimetable(
             Long id,
@@ -60,13 +61,15 @@ public class TimetableService {
                 ));
 
         applyRequest(timetable, request);
+
         checkConflicts(timetable, id);
 
-        return new TimetableResponse(
-                timetableRepository.save(timetable)
-        );
+        Timetable updatedTimetable = timetableRepository.save(timetable);
+
+        return new TimetableResponse(updatedTimetable);
     }
 
+    // Admin deletes a timetable entry.
     @Transactional
     public void deleteTimetable(Long id) {
 
@@ -81,6 +84,7 @@ public class TimetableService {
         timetableRepository.delete(timetable);
     }
 
+    // Retrieve the complete timetable for a section.
     @Transactional(readOnly = true)
     public List<TimetableResponse> getSectionTimetable(
             String branch,
@@ -89,17 +93,18 @@ public class TimetableService {
 
         validateSection(branch, year, section);
 
-
-return timetableRepository
-        .findByBranchIgnoreCaseAndYearAndSectionIgnoreCaseOrderByDayOfWeekAscStartTimeAsc(
-                branch, year, section
-        )
-        .stream()
-        .map(TimetableResponse::new)
-        .toList();
-
+        return timetableRepository
+                .findByBranchIgnoreCaseAndYearAndSectionIgnoreCaseOrderByDayOfWeekAscStartTimeAsc(
+                        branch.trim(),
+                        year,
+                        section.trim()
+                )
+                .stream()
+                .map(TimetableResponse::new)
+                .toList();
     }
 
+    // Retrieve a section's timetable for a particular day.
     @Transactional(readOnly = true)
     public List<TimetableResponse> getSectionTimetableByDay(
             String branch,
@@ -113,13 +118,17 @@ return timetableRepository
 
         return timetableRepository
                 .findByBranchIgnoreCaseAndYearAndSectionIgnoreCaseAndDayOfWeekIgnoreCaseOrderByStartTimeAsc(
-                        branch, year, section, day
+                        branch.trim(),
+                        year,
+                        section.trim(),
+                        day
                 )
                 .stream()
                 .map(TimetableResponse::new)
                 .toList();
     }
 
+    // Retrieve a faculty member's timetable.
     @Transactional(readOnly = true)
     public List<TimetableResponse> getFacultyTimetable(
             String facultyName) {
@@ -140,13 +149,16 @@ return timetableRepository
                 .toList();
     }
 
+    // Copy validated request values into the entity.
     private void applyRequest(
             Timetable timetable,
             TimetableRequest request) {
 
         timetable.setBranch(request.getBranch().trim());
         timetable.setYear(request.getYear());
-        timetable.setSection(request.getSection().trim().toUpperCase(Locale.ROOT));
+        timetable.setSection(
+                request.getSection().trim().toUpperCase(Locale.ROOT)
+        );
         timetable.setSubject(request.getSubject().trim());
         timetable.setFacultyName(request.getFacultyName().trim());
         timetable.setClassroom(request.getClassroom().trim());
@@ -155,12 +167,53 @@ return timetableRepository
         timetable.setEndTime(request.getEndTime());
     }
 
+    // Validate timetable values before saving.
     private void validateRequest(TimetableRequest request) {
 
         if (request == null) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
                     "Timetable request is required"
+            );
+        }
+
+        if (request.getBranch() == null
+                || request.getBranch().isBlank()) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Branch is required"
+            );
+        }
+
+        if (request.getSection() == null
+                || request.getSection().isBlank()) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Section is required"
+            );
+        }
+
+        if (request.getSubject() == null
+                || request.getSubject().isBlank()) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Subject is required"
+            );
+        }
+
+        if (request.getFacultyName() == null
+                || request.getFacultyName().isBlank()) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Faculty name is required"
+            );
+        }
+
+        if (request.getClassroom() == null
+                || request.getClassroom().isBlank()) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Classroom is required"
             );
         }
 
@@ -191,6 +244,7 @@ return timetableRepository
         normalizeDay(request.getDayOfWeek());
     }
 
+    // Validate section query parameters.
     private void validateSection(
             String branch,
             Integer year,
@@ -206,6 +260,7 @@ return timetableRepository
         }
     }
 
+    // Normalize and validate day names.
     private String normalizeDay(String dayOfWeek) {
 
         if (dayOfWeek == null || dayOfWeek.isBlank()) {
@@ -218,8 +273,13 @@ return timetableRepository
         String day = dayOfWeek.trim().toUpperCase(Locale.ROOT);
 
         if (!List.of(
-                "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY",
-                "FRIDAY", "SATURDAY", "SUNDAY"
+                "MONDAY",
+                "TUESDAY",
+                "WEDNESDAY",
+                "THURSDAY",
+                "FRIDAY",
+                "SATURDAY",
+                "SUNDAY"
         ).contains(day)) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
@@ -230,36 +290,29 @@ return timetableRepository
         return day;
     }
 
-    private void checkConflicts(Timetable candidate, Long excludedId) {
+    // Check for section, faculty, and classroom conflicts.
+    private void checkConflicts(
+            Timetable candidate,
+            Long excludedId) {
 
-        List<Timetable> existingEntries = timetableRepository.findAll();
+        List<Timetable> overlappingEntries =
+                timetableRepository.findOverlappingEntries(
+                        candidate.getDayOfWeek(),
+                        candidate.getStartTime(),
+                        candidate.getEndTime(),
+                        excludedId
+                );
 
-        for (Timetable existing : existingEntries) {
-
-            if (excludedId != null
-                    && existing.getId().equals(excludedId)) {
-                continue;
-            }
-
-            boolean sameDay = existing.getDayOfWeek()
-                    .equalsIgnoreCase(candidate.getDayOfWeek());
-
-            if (!sameDay) {
-                continue;
-            }
-
-            boolean overlapping =
-                    candidate.getStartTime().isBefore(existing.getEndTime())
-                    && candidate.getEndTime().isAfter(existing.getStartTime());
-
-            if (!overlapping) {
-                continue;
-            }
+        for (Timetable existing : overlappingEntries) {
 
             boolean sameSection =
-                    existing.getBranch().equalsIgnoreCase(candidate.getBranch())
+                    existing.getBranch().equalsIgnoreCase(
+                            candidate.getBranch()
+                    )
                     && existing.getYear().equals(candidate.getYear())
-                    && existing.getSection().equalsIgnoreCase(candidate.getSection());
+                    && existing.getSection().equalsIgnoreCase(
+                            candidate.getSection()
+                    );
 
             if (sameSection) {
                 throw new ApiException(
@@ -269,7 +322,9 @@ return timetableRepository
             }
 
             boolean sameFaculty =
-                    existing.getFacultyName().equalsIgnoreCase(candidate.getFacultyName());
+                    existing.getFacultyName().equalsIgnoreCase(
+                            candidate.getFacultyName()
+                    );
 
             if (sameFaculty) {
                 throw new ApiException(
@@ -279,7 +334,9 @@ return timetableRepository
             }
 
             boolean sameClassroom =
-                    existing.getClassroom().equalsIgnoreCase(candidate.getClassroom());
+                    existing.getClassroom().equalsIgnoreCase(
+                            candidate.getClassroom()
+                    );
 
             if (sameClassroom) {
                 throw new ApiException(
@@ -290,12 +347,14 @@ return timetableRepository
         }
     }
 
+    // Only administrators may create, update, or delete timetables.
     private void requireAdmin() {
 
         User user = currentUserService.getCurrentUser();
 
-        if (!"ADMIN".equalsIgnoreCase(
-                String.valueOf(user.getRole()))) {
+        if (user == null
+                || !"ADMIN".equalsIgnoreCase(
+                        String.valueOf(user.getRole()))) {
             throw new ApiException(
                     HttpStatus.FORBIDDEN,
                     "Only admins can manage timetables"

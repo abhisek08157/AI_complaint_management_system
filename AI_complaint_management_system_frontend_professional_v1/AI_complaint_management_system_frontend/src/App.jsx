@@ -1,3 +1,4 @@
+
 import {
   BrowserRouter,
   Routes,
@@ -13,8 +14,13 @@ import SubmitComplaint from "./pages/student/SubmitComplaint";
 import MyComplaints from "./pages/student/MyComplaints";
 import Notifications from "./pages/student/Notifications";
 import Announcements from "./pages/student/Announcements";
+import StudentFees from "./pages/student/StudentFees";
+import StudentTimetable from "./pages/student/StudentTimetable";
+import StudentMessMenu from "./pages/student/StudentMessMenu";
+import StudentGatePass from "./pages/student/StudentGatePass";
 
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import ManageComplaints from "./pages/admin/ManageComplaints";
 import ManageStaff from "./pages/admin/ManageStaff";
 import ManageAnnouncements from "./pages/admin/ManageAnnouncements";
@@ -35,7 +41,7 @@ function App() {
 
         <Route path="/register" element={<Register />} />
 
-        {/* Student routes */}
+        {/* Student dashboard */}
         <Route
           path="/student"
           element={
@@ -45,6 +51,7 @@ function App() {
           }
         />
 
+        {/* Student complaints */}
         <Route
           path="/student/submit"
           element={
@@ -63,7 +70,7 @@ function App() {
           }
         />
 
-        
+        {/* Student notifications */}
         <Route
           path="/student/notifications"
           element={
@@ -73,7 +80,7 @@ function App() {
           }
         />
 
-        
+        {/* Student announcements */}
         <Route
           path="/student/announcements"
           element={
@@ -83,9 +90,46 @@ function App() {
           }
         />
 
+        {/* Student fees and payments */}
+        <Route
+          path="/student/fees"
+          element={
+            <ProtectedRoute role="STUDENT">
+              <StudentFees />
+            </ProtectedRoute>
+          }
+        />
 
+        {/* Student timetable */}
+        <Route
+          path="/student/timetable"
+          element={
+            <ProtectedRoute role="STUDENT">
+              <StudentTimetable />
+            </ProtectedRoute>
+          }
+        />
 
-        {/* Admin routes */}
+        {/* Combined student mess menu and feedback page */}
+        <Route
+          path="/student/mess-menu"
+          element={
+            <ProtectedRoute role="STUDENT">
+              <StudentMessMenu />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/student/gate-pass"
+          element={
+            <ProtectedRoute role="STUDENT">
+              <StudentGatePass />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Admin dashboard */}
         <Route
           path="/admin"
           element={
@@ -95,6 +139,18 @@ function App() {
           }
         />
 
+
+        {/* Admin analytics and AI insights */}
+        <Route
+          path="/admin/analytics"
+          element={
+            <ProtectedRoute role="ADMIN">
+              <AdminAnalytics />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Admin complaint management */}
         <Route
           path="/admin/complaints"
           element={
@@ -104,16 +160,17 @@ function App() {
           }
         />
 
+        {/* Admin staff management */}
         <Route
           path="/admin/staff"
           element={
             <ProtectedRoute role="ADMIN">
               <ManageStaff />
             </ProtectedRoute>
-          }  
+          }
         />
 
-        
+        {/* Admin announcement management */}
         <Route
           path="/admin/announcements"
           element={
@@ -123,8 +180,7 @@ function App() {
           }
         />
 
-
-        {/* Staff route */}
+        {/* Staff dashboard */}
         <Route
           path="/staff"
           element={
@@ -134,7 +190,7 @@ function App() {
           }
         />
 
-        {/* Hostel Warden route */}
+        {/* Hostel warden dashboard */}
         <Route
           path="/warden"
           element={
@@ -144,7 +200,7 @@ function App() {
           }
         />
 
-        {/* Security route */}
+        {/* Security dashboard */}
         <Route
           path="/security"
           element={

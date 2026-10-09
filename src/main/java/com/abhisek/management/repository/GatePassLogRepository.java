@@ -4,6 +4,7 @@ import com.abhisek.management.entity.GatePass;
 import com.abhisek.management.entity.GatePassLog;
 import com.abhisek.management.entity.User;
 
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -14,6 +15,7 @@ import java.util.List;
 public interface GatePassLogRepository
         extends JpaRepository<GatePassLog, Long> {
 
+    @EntityGraph(attributePaths = {"gatePass", "verifiedBy"})
     List<GatePassLog> findByGatePassOrderByScannedAtDesc(
             GatePass gatePass
     );

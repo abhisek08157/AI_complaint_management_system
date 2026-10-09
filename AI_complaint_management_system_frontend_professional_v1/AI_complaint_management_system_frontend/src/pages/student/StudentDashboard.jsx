@@ -1,3 +1,4 @@
+
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -77,6 +78,13 @@ function StudentDashboard() {
             justify-content: space-between;
             gap: 20px;
             margin-bottom: 32px;
+          }
+
+          .welcome-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
           }
 
           .eyebrow {
@@ -310,9 +318,16 @@ function StudentDashboard() {
               font-size: 27px;
             }
 
-            .primary-button {
+            .welcome-actions {
               width: 100%;
+            }
+
+            .primary-button {
               white-space: normal;
+            }
+
+            .welcome-actions .primary-button {
+              flex: 1;
             }
 
             .section-heading {
@@ -362,14 +377,33 @@ function StudentDashboard() {
             </p>
           </div>
 
-          <Link className="primary-button" to="/student/submit">
-            ＋ New Complaint
-          </Link>
+          <div className="welcome-actions">
+            <Link className="primary-button" to="/student/submit">
+              ＋ New Complaint
+            </Link>
+
+            <Link className="primary-button" to="/student/fees">
+              ₹ Fees &amp; Payments
+            </Link>
+
+            <Link className="primary-button" to="/student/timetable">
+              ▦ My Timetable
+            </Link>
+
+            <Link className="primary-button" to="/student/mess-menu">
+              🍽️ Mess Details
+            </Link>
+
+            <Link className="primary-button" to="/student/gate-pass">
+              🎫 Gate Pass
+            </Link>
+          </div>
         </section>
 
         {error && (
           <div className="alert error" role="alert">
             <p>{error}</p>
+
             <button
               type="button"
               className="primary-button"
@@ -468,6 +502,7 @@ function StudentDashboard() {
             <div className="empty-icon">▤</div>
             <h3>No complaints yet</h3>
             <p>Submit your first complaint to get started.</p>
+
             <Link className="primary-button" to="/student/submit">
               Submit Complaint
             </Link>

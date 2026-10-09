@@ -17,12 +17,13 @@ function ManageAnnouncements() {
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState("");
   const [listError, setListError] = useState("");
   const [success, setSuccess] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
-  const [form, setForm] = useState(INITIAL_FORM);
+  const [form, setForm] = useState({ ...INITIAL_FORM });
 
   const fetchAnnouncements = useCallback(async () => {
     setLoading(true);
@@ -30,9 +31,7 @@ function ManageAnnouncements() {
 
     try {
       const response = await API.get("/announcements/admin");
-      setAnnouncements(
-        Array.isArray(response.data) ? response.data : []
-      );
+      setAnnouncements(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
       console.error("Failed to load announcements:", err);
       setListError(
@@ -60,6 +59,35 @@ function ManageAnnouncements() {
     setSuccess("");
   };
 
+  const resetForm = () => {
+    setForm({ ...INITIAL_FORM });
+    setEditingId(null);
+    setError("");
+    setSuccess("");
+  };
+
+  const handleEdit = (announcement) => {
+    setEditingId(announcement.id);
+
+    setForm({
+      title: announcement.title || "",
+      content: announcement.content || "",
+      category: announcement.category || "GENERAL",
+      targetAudience: announcement.targetAudience || "STUDENT",
+      status: String(announcement.status || "DRAFT").toUpperCase(),
+      publishAt: announcement.publishAt
+        ? String(announcement.publishAt).slice(0, 16)
+        : "",
+      expiresAt: announcement.expiresAt
+        ? String(announcement.expiresAt).slice(0, 16)
+        : "",
+    });
+
+    setError("");
+    setSuccess("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
@@ -84,42 +112,62 @@ function ManageAnnouncements() {
       return;
     }
 
+    const toLocalDateTime = (value) =>
+      value ? `${value.length === 16 ? `${value}:00` : value}` : null;
+
+    const payload = {
+      ...form,
+      title: form.title.trim(),
+      content: form.content.trim(),
+      category: form.category.trim(),
+      publishAt: toLocalDateTime(form.publishAt),
+      expiresAt: toLocalDateTime(form.expiresAt),
+    };
+
     setSaving(true);
 
     try {
-      const payload = {
-        ...form,
-        title: form.title.trim(),
-        content: form.content.trim(),
-        publishAt: form.publishAt
-          ? `${form.publishAt}:00`
-          : null,
-        expiresAt: form.expiresAt
-          ? `${form.expiresAt}:00`
-          : null,
-      };
+      if (editingId !== null) {
+        const response = await API.put(
+          `/announcements/${editingId}`,
+          payload
+        );
 
-      const response = await API.post("/announcements", payload);
+        if (response.data) {
+          setAnnouncements((previous) =>
+            previous.map((item) =>
+              item.id === editingId ? response.data : item
+            )
+          );
+        } else {
+          await fetchAnnouncements();
+        }
 
-      setSuccess("Announcement submitted successfully.");
-
-      if (response.data) {
-        setAnnouncements((previous) => [
-          response.data,
-          ...previous.filter(
-            (item) => item.id !== response.data.id
-          ),
-        ]);
+        setSuccess("Announcement updated successfully.");
       } else {
-        await fetchAnnouncements();
+        const response = await API.post("/announcements", payload);
+
+        if (response.data) {
+          setAnnouncements((previous) => [
+            response.data,
+            ...previous.filter((item) => item.id !== response.data.id),
+          ]);
+        } else {
+          await fetchAnnouncements();
+        }
+
+        setSuccess("Announcement created successfully.");
       }
 
       setForm({ ...INITIAL_FORM });
+      setEditingId(null);
     } catch (err) {
-      console.error("Failed to create announcement:", err);
+      console.error("Failed to save announcement:", err);
       setError(
         err.response?.data?.message ||
-          "Unable to create announcement. Check your access and try again."
+          (editingId !== null
+            ? "Unable to update announcement. Check your access and try again."
+            : "Unable to create announcement. Check your access and try again.")
       );
     } finally {
       setSaving(false);
@@ -152,7 +200,6 @@ function ManageAnnouncements() {
     if (!value) return "Not specified";
 
     const date = new Date(value);
-
     if (Number.isNaN(date.getTime())) return "Not specified";
 
     return date.toLocaleString("en-IN", {
@@ -184,8 +231,7 @@ function ManageAnnouncements() {
             padding: 36px 24px;
             background: #F8F4EB;
             color: #2C1F1D;
-            font-family: -apple-system, BlinkMacSystemFont,
-              "Segoe UI", sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
             box-sizing: border-box;
           }
 
@@ -374,7 +420,7 @@ function ManageAnnouncements() {
             color: #72635B;
           }
 
-          .announcement-secondary-btn:hover {
+          .announcement-secondary-btn:hover:not(:disabled) {
             background: #F4EFE6;
           }
 
@@ -523,6 +569,13 @@ function ManageAnnouncements() {
             font-weight: 600;
           }
 
+          .announcement-card-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 16px;
+          }
+
           .announcement-empty-state {
             padding: 35px 22px;
             background: #FFFFFF;
@@ -594,9 +647,7 @@ function ManageAnnouncements() {
         <div className="announcements-container">
           <p className="announcements-eyebrow">CAMPUSONE · ADMIN</p>
 
-          <h1 className="announcements-title">
-            Manage Announcements
-          </h1>
+          <h1 className="announcements-title">Manage Announcements</h1>
 
           <p className="announcements-subtitle">
             Publish campus updates and manage announcement visibility.
@@ -616,7 +667,11 @@ function ManageAnnouncements() {
 
           <section className="announcement-panel">
             <div className="announcement-panel-heading">
-              <h2>Create Announcement</h2>
+              <h2>
+                {editingId !== null
+                  ? "Edit Announcement"
+                  : "Create Announcement"}
+              </h2>
             </div>
 
             <form className="announcement-form" onSubmit={handleSubmit}>
@@ -661,9 +716,7 @@ function ManageAnnouncements() {
                 </div>
 
                 <div className="announcement-field">
-                  <label htmlFor="targetAudience">
-                    Target Audience
-                  </label>
+                  <label htmlFor="targetAudience">Target Audience</label>
                   <select
                     id="targetAudience"
                     name="targetAudience"
@@ -691,9 +744,7 @@ function ManageAnnouncements() {
                 </div>
 
                 <div className="announcement-field">
-                  <label htmlFor="publishAt">
-                    Publish At (optional)
-                  </label>
+                  <label htmlFor="publishAt">Publish At (optional)</label>
                   <input
                     id="publishAt"
                     name="publishAt"
@@ -704,9 +755,7 @@ function ManageAnnouncements() {
                 </div>
 
                 <div className="announcement-field">
-                  <label htmlFor="expiresAt">
-                    Expires At (optional)
-                  </label>
+                  <label htmlFor="expiresAt">Expires At (optional)</label>
                   <input
                     id="expiresAt"
                     name="expiresAt"
@@ -723,20 +772,20 @@ function ManageAnnouncements() {
                   type="submit"
                   disabled={saving}
                 >
-                  {saving ? "Submitting..." : "Create Announcement"}
+                  {saving
+                    ? "Saving..."
+                    : editingId !== null
+                      ? "Save Changes"
+                      : "Create Announcement"}
                 </button>
 
                 <button
                   className="announcement-secondary-btn"
                   type="button"
                   disabled={saving}
-                  onClick={() => {
-                    setForm({ ...INITIAL_FORM });
-                    setError("");
-                    setSuccess("");
-                  }}
+                  onClick={resetForm}
                 >
-                  Clear Form
+                  {editingId !== null ? "Cancel Edit" : "Clear Form"}
                 </button>
               </div>
             </form>
@@ -747,7 +796,7 @@ function ManageAnnouncements() {
               <div>
                 <h2>Existing Announcements</h2>
                 <p>
-                  Review the announcements returned by the admin API.
+                  Review and edit published announcements and drafts.
                 </p>
               </div>
 
@@ -821,6 +870,7 @@ function ManageAnnouncements() {
                     className="announcement-secondary-btn"
                     onClick={() => {
                       setForm({ ...INITIAL_FORM });
+                      setEditingId(null);
                       setError("");
                     }}
                   >
@@ -851,7 +901,9 @@ function ManageAnnouncements() {
                     className="announcement-card"
                   >
                     <div className="announcement-card-header">
-                      <h3>{announcement.title || "Untitled announcement"}</h3>
+                      <h3>
+                        {announcement.title || "Untitled announcement"}
+                      </h3>
 
                       <span
                         className={`announcement-status ${getStatusClass(
@@ -880,8 +932,7 @@ function ManageAnnouncements() {
                       <span>
                         <strong>Published:</strong>{" "}
                         {formatDate(
-                          announcement.publishAt ||
-                            announcement.createdAt
+                          announcement.publishAt || announcement.createdAt
                         )}
                       </span>
 
@@ -891,6 +942,17 @@ function ManageAnnouncements() {
                           {formatDate(announcement.expiresAt)}
                         </span>
                       )}
+                    </div>
+
+                    <div className="announcement-card-actions">
+                      <button
+                        type="button"
+                        className="announcement-primary-btn"
+                        onClick={() => handleEdit(announcement)}
+                        disabled={saving}
+                      >
+                        Edit Announcement
+                      </button>
                     </div>
                   </article>
                 ))}

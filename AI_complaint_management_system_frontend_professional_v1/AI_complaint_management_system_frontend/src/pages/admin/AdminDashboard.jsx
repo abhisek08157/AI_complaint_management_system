@@ -118,6 +118,14 @@ function AdminDashboard() {
       href: "/admin/announcements",
       icon: "▣",
     },
+    
+    {
+      title: "Analytics & AI Insights",
+      description: "Explore complaint trends, staff workload, and recurring issues.",
+      href: "/admin/analytics",
+      icon: "▥",
+    },
+
   ];
 
   const detailGroups = [

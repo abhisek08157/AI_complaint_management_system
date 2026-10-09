@@ -1,5 +1,7 @@
 
+import { useEffect, useState } from "react";
 import StatusBadge from "./StatusBadge";
+import API from "../services/api";
 
 function ComplaintCard({ complaint = {}, compact = false }) {
   const complaintId = complaint.id ?? complaint.complaintId ?? "N/A";
@@ -14,13 +16,64 @@ function ComplaintCard({ complaint = {}, compact = false }) {
       ? complaint.assignedStaff?.name
       : complaint.assignedStaff;
 
+  const [photoUrl, setPhotoUrl] = useState("");
+  const [photoState, setPhotoState] = useState("loading");
+
+  useEffect(() => {
+    let active = true;
+    let objectUrl = "";
+
+    const loadPhoto = async () => {
+      if (complaintId === "N/A") {
+        setPhotoState("unavailable");
+        return;
+      }
+
+      setPhotoState("loading");
+      setPhotoUrl("");
+
+      try {
+        const response = await API.get(
+          `/complaints/${complaintId}/photo`,
+          { responseType: "blob" }
+        );
+
+        if (!active) return;
+
+        if (!response.data || response.data.size === 0) {
+          setPhotoState("unavailable");
+          return;
+        }
+
+        objectUrl = URL.createObjectURL(response.data);
+        setPhotoUrl(objectUrl);
+        setPhotoState("available");
+      } catch {
+        if (active) {
+          setPhotoState("unavailable");
+        }
+      }
+    };
+
+    loadPhoto();
+
+    return () => {
+      active = false;
+
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [complaintId]);
+
   return (
     <article className={`complaint-card ${compact ? "compact" : ""}`}>
       <style>{`
         .complaint-card {
           width: 100%;
           min-width: 0;
-          height: 100%;
+          height: auto;
+          align-self: start;
           box-sizing: border-box;
           background: #FFFFFF;
           border: 1px solid #EFE8DA;
@@ -136,6 +189,44 @@ function ComplaintCard({ complaint = {}, compact = false }) {
           color: #2D6A4F;
         }
 
+        .complaint-photo-section {
+          border: 1px solid #EFE8DA;
+          border-radius: 10px;
+          padding: 12px;
+          background: #FDFBF7;
+        }
+
+        .complaint-photo-heading {
+          font-size: 12px;
+          font-weight: 700;
+          color: #72635B;
+          margin: 0 0 10px;
+        }
+
+        .complaint-photo {
+          display: block;
+          width: 100%;
+          max-height: 260px;
+          object-fit: contain;
+          border-radius: 8px;
+          background: #FFFFFF;
+        }
+
+        .complaint-photo-message {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin: 0;
+          color: #A0938C;
+          font-size: 12.5px;
+          line-height: 1.5;
+        }
+
+        .complaint-photo-message-icon {
+          font-size: 16px;
+          color: #C88A2E;
+        }
+
         .complaint-extra {
           background: #FDFBF7;
           border: 1px solid #F0E8D9;
@@ -145,7 +236,7 @@ function ComplaintCard({ complaint = {}, compact = false }) {
           flex-direction: column;
           gap: 10px;
           font-size: 13.5px;
-          margin-top: auto;
+          margin-top: 0;
           min-width: 0;
         }
 
@@ -199,6 +290,30 @@ function ComplaintCard({ complaint = {}, compact = false }) {
         {complaint.description || "No description provided."}
       </p>
 
+      {photoState === "available" && photoUrl ? (
+        <section className="complaint-photo-section">
+          <p className="complaint-photo-heading">Attached photo</p>
+
+          <a href={photoUrl} target="_blank" rel="noreferrer">
+            <img
+              className="complaint-photo"
+              src={photoUrl}
+              alt={`Photo attached to complaint ${complaintId}`}
+            />
+          </a>
+        </section>
+      ) : photoState === "unavailable" ? (
+        <p className="complaint-photo-message">
+          <span
+            className="complaint-photo-message-icon"
+            aria-hidden="true"
+          >
+            ▧
+          </span>
+          No image attached
+        </p>
+      ) : null}
+
       <div className="complaint-meta">
         <span>
           <span aria-hidden="true">⌖</span>
@@ -226,15 +341,13 @@ function ComplaintCard({ complaint = {}, compact = false }) {
 
           {assignedStaff && (
             <p>
-              <strong>Assigned Staff:</strong>{" "}
-              {assignedStaff}
+              <strong>Assigned Staff:</strong> {assignedStaff}
             </p>
           )}
 
           {complaint.resolution && (
             <p>
-              <strong>Resolution:</strong>{" "}
-              {complaint.resolution}
+              <strong>Resolution:</strong> {complaint.resolution}
             </p>
           )}
         </div>

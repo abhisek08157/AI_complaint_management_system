@@ -26,7 +26,19 @@ function Navbar() {
             { label: "Staff Management", to: "/admin/staff", icon: "♙" },
             { label: "Announcements", to: "/admin/announcements", icon: "▣" },
           ]
-        : [{ label: "Dashboard", to: "/staff", icon: "⌂" }];
+        : role === "HOSTEL_WARDEN"
+          ? [
+              { label: "Dashboard", to: "/warden", icon: "⌂" },
+            ]
+          : role === "SECURITY"
+            ? [
+                { label: "Dashboard", to: "/security", icon: "⌂" },
+              ]
+            : role === "STAFF"
+              ? [
+                  { label: "Dashboard", to: "/staff", icon: "⌂" },
+                ]
+              : [];
 
   const handleLogout = () => {
     logout();
@@ -244,7 +256,7 @@ function Navbar() {
         }
       `}</style>
 
-      <div className="brand" onClick={() => navigate(links[0].to)}>
+      <div className="brand" onClick={() => navigate(links[0]?.to || "/login")}>
         <span className="brand-mark">C</span>
         <div>
           <strong>CampusCare</strong>
@@ -257,7 +269,7 @@ function Navbar() {
           <NavLink
             key={link.to}
             to={link.to}
-            end={link.to === links[0].to}
+            end={link.to === links[0]?.to}
             className={({ isActive }) =>
               isActive ? "nav-link active" : "nav-link"
             }
@@ -274,8 +286,8 @@ function Navbar() {
         </div>
 
         <div className="user-details">
-          <strong>{user.name}</strong>
-          <small>{role}</small>
+          <strong>{user.name || "User"}</strong>
+          <small>{role || "USER"}</small>
         </div>
 
         <button

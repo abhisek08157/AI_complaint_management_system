@@ -1,4 +1,3 @@
-
 package com.abhisek.management.service;
 
 import com.abhisek.management.dto.FeePaymentRequest;
@@ -30,10 +29,15 @@ public class FeePaymentService {
             FeePaymentRepository feePaymentRepository,
             FeeRecordRepository feeRecordRepository,
             CurrentUserService currentUserService) {
+
         this.feePaymentRepository = feePaymentRepository;
         this.feeRecordRepository = feeRecordRepository;
         this.currentUserService = currentUserService;
     }
+
+    // =========================
+    // ONLINE DEMO PAYMENT
+    // =========================
 
     @Transactional
     public FeePaymentResponse payOnlineDemo(FeePaymentRequest request) {
@@ -42,6 +46,7 @@ public class FeePaymentService {
 
         if (!"STUDENT".equalsIgnoreCase(
                 String.valueOf(student.getRole()))) {
+
             throw new ApiException(
                     HttpStatus.FORBIDDEN,
                     "Only students can initiate online demo payments"
@@ -57,7 +62,10 @@ public class FeePaymentService {
             );
         }
 
-        FeeRecord feeRecord = getFeeRecord(request.getFeeRecordId());
+        // Lock the fee record within this transaction.
+        FeeRecord feeRecord = getFeeRecordForUpdate(
+                request.getFeeRecordId()
+        );
 
         if (!feeRecord.getStudent().getId().equals(student.getId())) {
             throw new ApiException(
@@ -77,24 +85,28 @@ public class FeePaymentService {
                 "DEMO-" + UUID.randomUUID()
         );
 
-        // This is a simulation only, not a real payment gateway.
+        // Simulation only: this is not a real payment gateway.
         boolean successful =
                 ThreadLocalRandom.current().nextInt(100) < 80;
 
         if (successful) {
             payment.setPaymentStatus("SUCCESS");
-            payment.setRemarks("Demo payment successful; no real money charged");
+            payment.setRemarks(
+                    "Demo payment successful; no real money charged"
+            );
 
             feeRecord.setPaidAmount(
                     feeRecord.getPaidAmount().add(request.getAmount())
             );
 
             updateFeeStatus(feeRecord);
-
             feeRecordRepository.save(feeRecord);
+
         } else {
             payment.setPaymentStatus("FAILED");
-            payment.setRemarks("Demo payment failed; no money charged");
+            payment.setRemarks(
+                    "Demo payment failed; no money charged"
+            );
         }
 
         FeePayment savedPayment = feePaymentRepository.save(payment);
@@ -102,13 +114,17 @@ public class FeePaymentService {
         return new FeePaymentResponse(savedPayment);
     }
 
+    // =========================
+    // RECORD OFFLINE PAYMENT
+    // =========================
+
     @Transactional
     public FeePaymentResponse recordOfflinePayment(
             FeePaymentRequest request) {
 
-        User admin = currentUserService.getCurrentUser();
-        requireAdminOrStaff(admin);
+        User adminOrStaff = currentUserService.getCurrentUser();
 
+        requireAdminOrStaff(adminOrStaff);
         validateRequest(request);
 
         if (!"OFFLINE".equalsIgnoreCase(request.getPaymentMethod())) {
@@ -118,7 +134,10 @@ public class FeePaymentService {
             );
         }
 
-        FeeRecord feeRecord = getFeeRecord(request.getFeeRecordId());
+        // Lock the fee record within this transaction.
+        FeeRecord feeRecord = getFeeRecordForUpdate(
+                request.getFeeRecordId()
+        );
 
         BigDecimal remaining = getRemainingAmount(feeRecord);
         validateAmount(request.getAmount(), remaining);
@@ -131,8 +150,10 @@ public class FeePaymentService {
         payment.setTransactionReference(
                 "OFF-" + UUID.randomUUID()
         );
-        payment.setRecordedBy(admin);
-        payment.setRemarks("Offline payment recorded by college staff");
+        payment.setRecordedBy(adminOrStaff);
+        payment.setRemarks(
+                "Offline payment recorded by college staff"
+        );
 
         feeRecord.setPaidAmount(
                 feeRecord.getPaidAmount().add(request.getAmount())
@@ -147,6 +168,10 @@ public class FeePaymentService {
         return new FeePaymentResponse(savedPayment);
     }
 
+    // =========================
+    // MY PAYMENT HISTORY
+    // =========================
+
     @Transactional(readOnly = true)
     public List<FeePaymentResponse> getMyPaymentHistory() {
 
@@ -154,6 +179,7 @@ public class FeePaymentService {
 
         if (!"STUDENT".equalsIgnoreCase(
                 String.valueOf(student.getRole()))) {
+
             throw new ApiException(
                     HttpStatus.FORBIDDEN,
                     "Only students can view their payment history"
@@ -161,11 +187,17 @@ public class FeePaymentService {
         }
 
         return feePaymentRepository
-                .findByFeeRecordStudentIdOrderByCreatedAtDesc(student.getId())
+                .findByFeeRecordStudentIdOrderByCreatedAtDesc(
+                        student.getId()
+                )
                 .stream()
                 .map(FeePaymentResponse::new)
                 .toList();
     }
+
+    // =========================
+    // PAYMENT HISTORY BY FEE
+    // =========================
 
     @Transactional(readOnly = true)
     public List<FeePaymentResponse> getPaymentHistoryByFeeRecord(
@@ -175,7 +207,8 @@ public class FeePaymentService {
         FeeRecord feeRecord = getFeeRecord(feeRecordId);
 
         boolean isAdmin = "ADMIN".equalsIgnoreCase(
-                String.valueOf(user.getRole()));
+                String.valueOf(user.getRole())
+        );
 
         boolean isOwner = feeRecord.getStudent().getId()
                 .equals(user.getId());
@@ -194,6 +227,10 @@ public class FeePaymentService {
                 .toList();
     }
 
+    // =========================
+    // FIND FEE RECORD
+    // =========================
+
     private FeeRecord getFeeRecord(Long id) {
 
         return feeRecordRepository.findById(id)
@@ -202,6 +239,21 @@ public class FeePaymentService {
                         "Fee record not found"
                 ));
     }
+
+    // Fetch and lock a fee record for payment processing.
+    // Call this only from a transactional payment method.
+    private FeeRecord getFeeRecordForUpdate(Long id) {
+
+        return feeRecordRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "Fee record not found"
+                ));
+    }
+
+    // =========================
+    // VALIDATION
+    // =========================
 
     private void validateRequest(FeePaymentRequest request) {
 
@@ -214,6 +266,7 @@ public class FeePaymentService {
 
         if (request.getAmount() == null
                 || request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
                     "Payment amount must be greater than zero"
@@ -248,6 +301,10 @@ public class FeePaymentService {
         }
     }
 
+    // =========================
+    // UPDATE FEE STATUS
+    // =========================
+
     private void updateFeeStatus(FeeRecord feeRecord) {
 
         if (feeRecord.getPaidAmount()
@@ -265,12 +322,17 @@ public class FeePaymentService {
         }
     }
 
+    // =========================
+    // ROLE VALIDATION
+    // =========================
+
     private void requireAdminOrStaff(User user) {
 
         String role = String.valueOf(user.getRole());
 
         if (!"ADMIN".equalsIgnoreCase(role)
                 && !"STAFF".equalsIgnoreCase(role)) {
+
             throw new ApiException(
                     HttpStatus.FORBIDDEN,
                     "Only admins or staff can record offline payments"

@@ -1,11 +1,12 @@
+
 package com.abhisek.management.controller;
 
 import com.abhisek.management.dto.GatePassCreateRequest;
+import com.abhisek.management.dto.GatePassLogResponse;
 import com.abhisek.management.dto.GatePassResponse;
 import com.abhisek.management.dto.GatePassStatusRequest;
 import com.abhisek.management.dto.GatePassVerificationResponse;
 import com.abhisek.management.dto.GatePassVerifyRequest;
-import com.abhisek.management.entity.GatePassLog;
 import com.abhisek.management.service.GatePassService;
 
 import org.springframework.http.HttpStatus;
@@ -20,43 +21,35 @@ public class GatePassController {
 
     private final GatePassService gatePassService;
 
-    public GatePassController(
-            GatePassService gatePassService) {
-
+    public GatePassController(GatePassService gatePassService) {
         this.gatePassService = gatePassService;
     }
 
-    // ============================================================
-    // STUDENT - CREATE
-    // ============================================================
+    // STUDENT - CREATE GATE PASS
 
     @PostMapping
     public ResponseEntity<GatePassResponse> createGatePass(
             @RequestBody GatePassCreateRequest request) {
 
+        GatePassResponse response =
+                gatePassService.createGatePass(request);
+
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(
-                        gatePassService.createGatePass(request)
-                );
+                .body(response);
     }
 
-    // ============================================================
-    // STUDENT - MY PASSES
-    // ============================================================
+    // STUDENT - GET MY GATE PASSES
 
     @GetMapping("/my")
-    public ResponseEntity<List<GatePassResponse>>
-    getMyGatePasses() {
+    public ResponseEntity<List<GatePassResponse>> getMyGatePasses() {
 
         return ResponseEntity.ok(
                 gatePassService.getMyGatePasses()
         );
     }
 
-    // ============================================================
-    // GET BY ID
-    // ============================================================
+    // GET GATE PASS BY ID
 
     @GetMapping("/{id}")
     public ResponseEntity<GatePassResponse> getGatePassById(
@@ -67,57 +60,42 @@ public class GatePassController {
         );
     }
 
-    // ============================================================
-    // WARDEN - ALL PASSES
-    // ============================================================
+    // WARDEN - GET ALL GATE PASSES
 
     @GetMapping("/warden")
-    public ResponseEntity<List<GatePassResponse>>
-    getWardenGatePasses() {
+    public ResponseEntity<List<GatePassResponse>> getWardenGatePasses() {
 
         return ResponseEntity.ok(
                 gatePassService.getWardenGatePasses()
         );
     }
 
-    // ============================================================
-    // WARDEN - APPROVE / REJECT
-    // ============================================================
+    // WARDEN - APPROVE OR REJECT
 
     @PutMapping("/{id}/decision")
-    public ResponseEntity<GatePassResponse>
-    updateGatePassDecision(
+    public ResponseEntity<GatePassResponse> updateGatePassDecision(
             @PathVariable Long id,
             @RequestBody GatePassStatusRequest request) {
 
         return ResponseEntity.ok(
-                gatePassService.updateGatePassDecision(
-                        id,
-                        request
-                )
+                gatePassService.updateGatePassDecision(id, request)
         );
     }
 
-    // ============================================================
-    // ADMIN - ALL PASSES
-    // ============================================================
+    // ADMIN - GET ALL GATE PASSES
 
     @GetMapping("/admin")
-    public ResponseEntity<List<GatePassResponse>>
-    getAllGatePasses() {
+    public ResponseEntity<List<GatePassResponse>> getAllGatePasses() {
 
         return ResponseEntity.ok(
                 gatePassService.getAllGatePasses()
         );
     }
 
-    // ============================================================
-    // SECURITY - VERIFY QR
-    // ============================================================
+    // SECURITY - VERIFY QR TOKEN
 
     @PostMapping("/verify")
-    public ResponseEntity<GatePassVerificationResponse>
-    verifyGatePass(
+    public ResponseEntity<GatePassVerificationResponse> verifyGatePass(
             @RequestBody GatePassVerifyRequest request) {
 
         return ResponseEntity.ok(
@@ -125,13 +103,10 @@ public class GatePassController {
         );
     }
 
-    // ============================================================
-    // SECURITY - LOGS
-    // ============================================================
+    // SECURITY - GET GATE PASS LOGS
 
     @GetMapping("/{id}/logs")
-    public ResponseEntity<List<GatePassLog>>
-    getGatePassLogs(
+    public ResponseEntity<List<GatePassLogResponse>> getGatePassLogs(
             @PathVariable Long id) {
 
         return ResponseEntity.ok(
