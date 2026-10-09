@@ -1,6 +1,14 @@
 package com.abhisek.management.service;
 
 import com.abhisek.management.dto.AnalyticsDashboardResponse;
+import com.abhisek.management.entity.Complaint;
+import com.abhisek.management.entity.User;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Comparator;
+import java.util.stream.Collectors;
 import com.abhisek.management.repository.AnnouncementRepository;
 import com.abhisek.management.repository.CampusRequestRepository;
 import com.abhisek.management.repository.ComplaintRepository;
@@ -194,7 +202,81 @@ public class AnalyticsService {
                 complaintStats,
                 requestStats,
                 gatePassStats,
-                announcementStats
+                announcementStats,
+                buildComplaintInsights()
         );
     }
+
+    private AnalyticsDashboardResponse.ComplaintInsights buildComplaintInsights() {
+        java.util.List<Complaint> all = complaintRepository.findAll();
+        LocalDateTime now = LocalDateTime.now();
+        long open = 0, overdue = 0, age0To2 = 0, age3To7 = 0, ageOver7 = 0;
+        long resolvedWithDuration = 0, totalResolutionMinutes = 0, recurring = 0;
+        Map<String, Long> locations = new LinkedHashMap<>();
+        Map<String, long[]> staffCounts = new LinkedHashMap<>();
+
+        for (Complaint c : all) {
+            String status = c.getStatus() == null ? "" : c.getStatus().toUpperCase();
+            boolean closed = status.equals("RESOLVED") || status.equals("CLOSED")
+                    || status.equals("COMPLETED") || status.equals("REJECTED");
+
+            if (!closed) {
+                open++;
+                if (c.getCreatedAt() != null) {
+                    long days = Math.max(0, Duration.between(c.getCreatedAt(), now).toDays());
+                    if (days > 7) overdue++;
+                    if (days <= 2) age0To2++;
+                    else if (days <= 7) age3To7++;
+                    else ageOver7++;
+                }
+            }
+
+            if (c.getCreatedAt() != null && c.getResolvedAt() != null
+                    && !c.getResolvedAt().isBefore(c.getCreatedAt())) {
+                totalResolutionMinutes += Duration.between(c.getCreatedAt(), c.getResolvedAt()).toMinutes();
+                resolvedWithDuration++;
+            }
+
+            if (c.isPossibleRecurringIssue()) {
+                recurring++;
+                String location = c.getLocation();
+                if (location == null || location.isBlank()) location = "Unspecified location";
+                locations.merge(location.trim(), 1L, Long::sum);
+            }
+
+            User assigned = c.getAssignedStaff();
+            if (assigned != null) {
+                String name = assigned.getName();
+                if (name == null || name.isBlank()) name = assigned.getEmail();
+                long[] counts = staffCounts.computeIfAbsent(name, key -> new long[3]);
+                counts[0]++;
+                if (!closed) counts[1]++;
+                if (status.equals("RESOLVED") || status.equals("CLOSED")) counts[2]++;
+            }
+        }
+
+        double averageHours = resolvedWithDuration == 0 ? 0.0
+                : (double) totalResolutionMinutes / resolvedWithDuration / 60.0;
+
+        java.util.List<AnalyticsDashboardResponse.StaffWorkload> staffWorkload =
+                staffCounts.entrySet().stream()
+                        .map(e -> new AnalyticsDashboardResponse.StaffWorkload(
+                                e.getKey(), e.getValue()[0], e.getValue()[1], e.getValue()[2]))
+                        .sorted(Comparator.comparingLong(
+                                AnalyticsDashboardResponse.StaffWorkload::getOpenComplaints).reversed())
+                        .collect(Collectors.toList());
+
+        java.util.List<AnalyticsDashboardResponse.RecurringLocation> recurringLocations =
+                locations.entrySet().stream()
+                        .map(e -> new AnalyticsDashboardResponse.RecurringLocation(e.getKey(), e.getValue()))
+                        .sorted(Comparator.comparingLong(
+                                AnalyticsDashboardResponse.RecurringLocation::getCount).reversed())
+                        .limit(10)
+                        .collect(Collectors.toList());
+
+        return new AnalyticsDashboardResponse.ComplaintInsights(
+                open, overdue, age0To2, age3To7, ageOver7, resolvedWithDuration,
+                averageHours, recurring, staffWorkload, recurringLocations);
+    }
+
 }

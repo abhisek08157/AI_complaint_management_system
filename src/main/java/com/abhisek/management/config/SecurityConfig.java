@@ -249,6 +249,125 @@ public class SecurityConfig {
                           .requestMatchers("/api/student/**").hasRole("STUDENT")
                           .requestMatchers("/api/notifications/**").authenticated()
 
+                          // ========================================================
+                          // ATTENDANCE MANAGEMENT
+                          // ========================================================
+
+                          // Staff can mark attendance
+                          .requestMatchers(
+                                  HttpMethod.POST,
+                                  "/api/attendance"
+                          ).hasRole("STAFF")
+
+                          // Students can view their own attendance
+                          .requestMatchers(
+                                  HttpMethod.GET,
+                                  "/api/attendance/my"
+                          ).hasRole("STUDENT")
+
+                          // Staff and admin can view a student's attendance
+                          .requestMatchers(
+                                  HttpMethod.GET,
+                                  "/api/attendance/student/*"
+                          ).hasAnyRole("STAFF", "ADMIN")
+
+                          // Staff and admin can view attendance by subject/date
+                          .requestMatchers(
+                                  HttpMethod.GET,
+                                  "/api/attendance/by-subject"
+                          ).hasAnyRole("STAFF", "ADMIN")
+
+                          // MESS MENU - CREATE
+                          .requestMatchers(
+                                  HttpMethod.POST,
+                                  "/api/mess-menu"
+                          ).hasAnyRole("ADMIN", "HOSTEL_WARDEN")
+
+                          // MESS MENU - UPDATE
+                          .requestMatchers(
+                                  HttpMethod.PUT,
+                                  "/api/mess-menu/*"
+                          ).hasAnyRole("ADMIN", "HOSTEL_WARDEN")
+
+                          // MESS MENU - DELETE
+                          .requestMatchers(
+                                  HttpMethod.DELETE,
+                                  "/api/mess-menu/*"
+                          ).hasAnyRole("ADMIN", "HOSTEL_WARDEN")
+
+                          // MESS MENU - VIEW
+                          .requestMatchers(
+                                  HttpMethod.GET,
+                                  "/api/mess-menu/**"
+                          ).authenticated()
+
+.requestMatchers(HttpMethod.POST, "/api/mess-feedback")
+    .hasRole("STUDENT")
+
+.requestMatchers(HttpMethod.GET, "/api/mess-feedback/my")
+    .hasRole("STUDENT")
+
+.requestMatchers(
+        HttpMethod.GET,
+        "/api/mess-feedback/by-date",
+        "/api/mess-feedback/by-meal"
+).hasRole("ADMIN")
+
+.requestMatchers(HttpMethod.GET, "/api/mess-feedback")
+    .hasRole("ADMIN")
+
+.requestMatchers(HttpMethod.POST, "/api/timetable")
+    .hasRole("ADMIN")
+
+.requestMatchers(HttpMethod.PUT, "/api/timetable/*")
+    .hasRole("ADMIN")
+
+.requestMatchers(HttpMethod.DELETE, "/api/timetable/*")
+    .hasRole("ADMIN")
+
+.requestMatchers(
+        HttpMethod.GET,
+        "/api/timetable/section",
+        "/api/timetable/section/day"
+)
+    .hasAnyRole("STUDENT", "STAFF", "ADMIN")
+
+.requestMatchers(HttpMethod.GET, "/api/timetable/faculty")
+    .hasAnyRole("STAFF", "ADMIN")
+
+.requestMatchers(HttpMethod.POST, "/api/fees")
+    .hasRole("ADMIN")
+
+.requestMatchers(HttpMethod.GET, "/api/fees/my")
+    .hasRole("STUDENT")
+
+.requestMatchers(HttpMethod.GET, "/api/fees/student/*")
+    .hasRole("ADMIN")
+
+.requestMatchers(HttpMethod.GET, "/api/fees")
+    .hasRole("ADMIN")
+
+.requestMatchers(HttpMethod.GET, "/api/fees/*")
+    .hasAnyRole("ADMIN", "STUDENT")
+
+.requestMatchers(HttpMethod.POST, "/api/fee-payments/online-demo")
+    .hasRole("STUDENT")
+
+.requestMatchers(HttpMethod.POST, "/api/fee-payments/offline")
+    .hasAnyRole("ADMIN", "STAFF")
+
+.requestMatchers(HttpMethod.GET, "/api/fee-payments/my")
+    .hasRole("STUDENT")
+
+.requestMatchers(HttpMethod.GET, "/api/fee-payments/fee/*")
+    .hasAnyRole("ADMIN", "STUDENT")
+
+
+
+
+
+
+
                         // ========================================================
                         // EVERYTHING ELSE
                         // ========================================================

@@ -7,6 +7,7 @@ public class AnalyticsDashboardResponse {
     private RequestStats campusRequests;
     private GatePassStats gatePasses;
     private AnnouncementStats announcements;
+    private ComplaintInsights complaintInsights;
 
     public AnalyticsDashboardResponse() {
     }
@@ -23,6 +24,12 @@ public class AnalyticsDashboardResponse {
         this.campusRequests = campusRequests;
         this.gatePasses = gatePasses;
         this.announcements = announcements;
+    }
+
+    public AnalyticsDashboardResponse(UserStats users, ComplaintStats complaints, RequestStats campusRequests,
+            GatePassStats gatePasses, AnnouncementStats announcements, ComplaintInsights complaintInsights) {
+        this(users, complaints, campusRequests, gatePasses, announcements);
+        this.complaintInsights = complaintInsights;
     }
 
     public UserStats getUsers() {
@@ -44,6 +51,8 @@ public class AnalyticsDashboardResponse {
     public AnnouncementStats getAnnouncements() {
         return announcements;
     }
+
+    public ComplaintInsights getComplaintInsights() { return complaintInsights; }
 
 
     public static class UserStats {
@@ -293,4 +302,76 @@ public class AnalyticsDashboardResponse {
             return expired;
         }
     }
+
+    public static class ComplaintInsights {
+        private long openComplaints;
+        private long overdueComplaints;
+        private long age0To2Days;
+        private long age3To7Days;
+        private long ageOver7Days;
+        private long resolvedWithDuration;
+        private double averageResolutionHours;
+        private long possibleRecurringIssues;
+        private java.util.List<StaffWorkload> staffWorkload;
+        private java.util.List<RecurringLocation> recurringLocations;
+
+        public ComplaintInsights() {}
+        public ComplaintInsights(long openComplaints, long overdueComplaints, long age0To2Days,
+                long age3To7Days, long ageOver7Days, long resolvedWithDuration,
+                double averageResolutionHours, long possibleRecurringIssues,
+                java.util.List<StaffWorkload> staffWorkload,
+                java.util.List<RecurringLocation> recurringLocations) {
+            this.openComplaints = openComplaints;
+            this.overdueComplaints = overdueComplaints;
+            this.age0To2Days = age0To2Days;
+            this.age3To7Days = age3To7Days;
+            this.ageOver7Days = ageOver7Days;
+            this.resolvedWithDuration = resolvedWithDuration;
+            this.averageResolutionHours = averageResolutionHours;
+            this.possibleRecurringIssues = possibleRecurringIssues;
+            this.staffWorkload = staffWorkload;
+            this.recurringLocations = recurringLocations;
+        }
+        public long getOpenComplaints() { return openComplaints; }
+        public long getOverdueComplaints() { return overdueComplaints; }
+        public long getAge0To2Days() { return age0To2Days; }
+        public long getAge3To7Days() { return age3To7Days; }
+        public long getAgeOver7Days() { return ageOver7Days; }
+        public long getResolvedWithDuration() { return resolvedWithDuration; }
+        public double getAverageResolutionHours() { return averageResolutionHours; }
+        public long getPossibleRecurringIssues() { return possibleRecurringIssues; }
+        public java.util.List<StaffWorkload> getStaffWorkload() { return staffWorkload; }
+        public java.util.List<RecurringLocation> getRecurringLocations() { return recurringLocations; }
+    }
+
+    public static class StaffWorkload {
+        private String staffName;
+        private long totalAssigned;
+        private long openComplaints;
+        private long resolvedComplaints;
+        public StaffWorkload() {}
+        public StaffWorkload(String staffName, long totalAssigned, long openComplaints, long resolvedComplaints) {
+            this.staffName = staffName;
+            this.totalAssigned = totalAssigned;
+            this.openComplaints = openComplaints;
+            this.resolvedComplaints = resolvedComplaints;
+        }
+        public String getStaffName() { return staffName; }
+        public long getTotalAssigned() { return totalAssigned; }
+        public long getOpenComplaints() { return openComplaints; }
+        public long getResolvedComplaints() { return resolvedComplaints; }
+    }
+
+    public static class RecurringLocation {
+        private String location;
+        private long count;
+        public RecurringLocation() {}
+        public RecurringLocation(String location, long count) {
+            this.location = location;
+            this.count = count;
+        }
+        public String getLocation() { return location; }
+        public long getCount() { return count; }
+    }
+
 }
