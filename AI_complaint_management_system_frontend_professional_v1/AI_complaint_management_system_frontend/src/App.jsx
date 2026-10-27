@@ -24,10 +24,16 @@ import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import ManageComplaints from "./pages/admin/ManageComplaints";
 import ManageStaff from "./pages/admin/ManageStaff";
 import ManageAnnouncements from "./pages/admin/ManageAnnouncements";
+import MessFeedbackReview from "./pages/MessFeedbackReview";
+import StudentCampusRequests from "./pages/student/StudentCampusRequests";
+import AdminCampusRequests from "./pages/admin/AdminCampusRequests";
+import AdminFeeManagement from "./pages/admin/AdminFeeManagement";
 
 import StaffDashboard from "./pages/staff/StaffDashboard";
+import StaffAttendance from "./pages/staff/StaffAttendance";
 
 import WardenDashboard from "./pages/warden/WardenDashboard";
+import ManageMessMenu from "./pages/warden/ManageMessMenu";
 import SecurityDashboard from "./pages/security/SecurityDashboard";
 
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -180,12 +186,31 @@ function App() {
           }
         />
 
+        <Route
+          path="/admin/fees"
+          element={
+            <ProtectedRoute role="ADMIN">
+              <AdminFeeManagement />
+            </ProtectedRoute>
+          }
+        />
+
         {/* Staff dashboard */}
         <Route
           path="/staff"
           element={
             <ProtectedRoute role="STAFF">
               <StaffDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Staff Attendance */}
+        <Route
+          path="/staff/attendance"
+          element={
+            <ProtectedRoute role="STAFF">
+              <StaffAttendance />
             </ProtectedRoute>
           }
         />
@@ -199,6 +224,57 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path="/warden/mess-menu"
+          element={
+            <ProtectedRoute role="HOSTEL_WARDEN">
+              <ManageMessMenu />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Admin views all student mess feedback */}
+        <Route
+          path="/admin/mess-feedback"
+          element={
+            <ProtectedRoute role="ADMIN">
+              <MessFeedbackReview />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Hostel warden views all student mess feedback */}
+        <Route
+          path="/warden/mess-feedback"
+          element={
+            <ProtectedRoute role="HOSTEL_WARDEN">
+              <MessFeedbackReview />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Student campus requests and certificates */}
+        <Route
+          path="/student/campus-requests"
+          element={
+            <ProtectedRoute role="STUDENT">
+              <StudentCampusRequests />
+            </ProtectedRoute>
+          }
+        />
+
+
+        {/* Admin campus request management */}
+        <Route
+          path="/admin/campus-requests"
+          element={
+            <ProtectedRoute role="ADMIN">
+              <AdminCampusRequests />
+            </ProtectedRoute>
+          }
+        />
+
 
         {/* Security dashboard */}
         <Route
